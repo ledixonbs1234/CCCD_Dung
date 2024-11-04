@@ -7,10 +7,12 @@ import {
   child,
   DataSnapshot,
   onValue,
+  set,
 } from "firebase/database";
 
 import { RedoOutlined } from "@ant-design/icons";
 import { Button, Select, Space } from "antd";
+import { useEffect } from "react";
 
 // type PopupProps = {
 // handleClick :React.MouseEventHandler<HTMLButtonElement>
@@ -25,7 +27,11 @@ const firebaseConfig = {
   appId: "1:892472148061:web:f22a5c4ffd25858726cdb4"
 };
 export default function Popup() {
-
+  
+  initializeApp(firebaseConfig);
+  const db = getDatabase();
+  const refCCCD = ref(db, "CCCDAPP/" + "cccd");
+  const refIsAuto = ref(db, "CCCDAPP/" + "cccdauto");
 
 
   const showNotification = (message: string) => {
@@ -36,25 +42,27 @@ export default function Popup() {
       iconUrl: "128.jpg",
     });
   };
-  let isFirstRun = true;
+  
+  let isFirstAutoRun = true;
   const handleGetDataFromPNS = async () => {
-    chrome.tabs.query(
-      { active: true, lastFocusedWindow: true, currentWindow: true },
-      (tabs) => {
-        const tabId = tabs.length === 0 ? 0 : tabs[0].id!;
-        initializeApp(firebaseConfig);
-        const db = getDatabase();
-        const refCCCD = ref(db, "cccd");
-
-        onValue(refCCCD, (snapshot) => {
-          const data = snapshot.val();
-          console.log(data);
-          if (isFirstRun) {
-            isFirstRun = false;
-            return;
-          } else {
 
 
+   
+  };
+  useEffect(() => {
+    var isAutoRun = false;
+    let isFirstRun = true;
+    onValue(refCCCD, (snapshot) => {
+      const data = snapshot.val();
+      console.log(data);
+      if (isFirstRun) {
+        isFirstRun = false;
+        return;
+      } else {
+        chrome.tabs.query(
+          { active: true, lastFocusedWindow: true, currentWindow: true },
+          (tabs) => {
+            const tabId = tabs.length === 0 ? 0 : tabs[0].id!;
             chrome.tabs.sendMessage(
               tabId,
               {
@@ -64,13 +72,38 @@ export default function Popup() {
                 console.log("Response from content ", response);
               }
             );
-          }
+          });
+      }
+    })
+    onValue(refIsAuto, (snapshot) => {
+      const data = snapshot.val();
+      console.log(data);
+      if (isFirstAutoRun) {
+        isFirstAutoRun = false;
+        return;
+      } else {
+        isAutoRun = data;
 
-        });
 
       }
-    );
-  };
+    })
+
+    chrome.runtime.onMessage.addListener((msg, sender, callback) => {
+      console.log("DDax nhan tin nhan toi opition ",msg);
+      if (msg.message === "finded") {
+        if (isAutoRun) {
+          console.log("continueCCCD")
+          set(ref(db, "CCCDAPP/message"), { "Lenh": "continueCCCD", "TimeStamp": new Date().getTime().toString(), "DoiTuong": "" })
+        }
+      }
+      return true;
+    })
+  }, [])
+
+
+
+
+
 
 
   return (

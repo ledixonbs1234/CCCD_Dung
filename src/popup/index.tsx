@@ -14,11 +14,11 @@ const App = () => {
   const root = createRoot(container);
 
   root.render(
-    <React.StrictMode>
+    // <React.StrictMode>
       <Provider store={store}>
         <Popup />
       </Provider>
-    </React.StrictMode>
+    // </React.StrictMode>
   );
 };
 export default App();

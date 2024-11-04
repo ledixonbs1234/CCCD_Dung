@@ -1,26 +1,24 @@
 window.onload = () => {
   console.log("chay contentScript");
-  waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then((e) => {
-    var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
-    if (list.length == 1) {
-      console.log("da tim thay")
-      if (e) (e as HTMLInputElement).click();
-    }
-  })
+  let a =  document.querySelector("#HoTen") as HTMLInputElement;
+  var textTen = a?.value;
+  if (textTen == "") {
+    chrome.runtime.sendMessage({ message: "finded" }, (response) => {
+      return true;
+    });
+  } else {
+    waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then( (e)  => {
+      var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
+      if (list.length == 1) {
+        if (e )
+          (e as HTMLButtonElement).click();
+        console.log("da tim thay onload");
+      }
+    });
+  }
 };
-
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("chay");
-  waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then((e) => {
-    var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
-    if (list.length == 1) {
-      console.log("da tim thay")
-      if (e) (e as HTMLInputElement).click();
-    }
-  })
-});
-
 chrome.runtime.onMessage.addListener((msg, sender, callback) => {
+  console.log("Đã nhận được tin nhắn tới contentScript");
   if (msg) {
     if (msg.message === "ADDCCCD") {
       var event = new Event("input", { bubbles: true });
@@ -35,13 +33,13 @@ chrome.runtime.onMessage.addListener((msg, sender, callback) => {
       b?.dispatchEvent(event);
       let c: HTMLInputElement | null = document.querySelector("#submit");
       c?.click()
-      waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then((e) => {
-        var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
-        if (list.length == 1) {
-          console.log("da tim thay")
-          if (e) (e as HTMLInputElement).click();
-        }
-      })
+      // waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then((e) => {
+      //   var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
+      //   if (list.length == 1) {
+      //     console.log("da tim thay addcccd")
+      //     // if (e) (e as HTMLInputElement).click();
+      //   }
+      // })
     }
   }
 });
