@@ -54,7 +54,7 @@ export default function Popup() {
     let isFirstRun = true;
     onValue(refCCCD, (snapshot) => {
       const data = snapshot.val();
-      console.log(data);
+      console.log("Hiện dữ liệu đã từng :"+ data);
       if (isFirstRun) {
         isFirstRun = false;
         return;
