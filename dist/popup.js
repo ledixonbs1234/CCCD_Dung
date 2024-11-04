@@ -266,49 +266,69 @@ function Popup() {
     let isFirstAutoRun = true;
     const handleGetDataFromPNS = async () => {
     };
+    // Hàm gửi thông điệp đến tab hiện tại
+    const sendMessageToCurrentTab = (data) => {
+        chrome.tabs.query({ active: true, lastFocusedWindow: true, currentWindow: true }, (tabs) => {
+            const tabId = tabs.length === 0 ? 0 : tabs[0].id; // Lấy ID của tab hiện tại
+            chrome.tabs.sendMessage(tabId, {
+                message: "ADDCCCD", data // Gửi thông điệp với dữ liệu CCCD
+            }, (response) => {
+                console.log("Response from content ", response); // Log phản hồi từ content script
+            });
+        });
+    };
     (0,react__WEBPACK_IMPORTED_MODULE_4__.useEffect)(() => {
+        // Biến để xác định xem có đang chạy tự động hay không
         var isAutoRun = false;
+        // Biến để kiểm tra xem đây có phải là lần chạy đầu tiên hay không
         let isFirstRun = true;
-        (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refCCCD, (snapshot) => {
-            const data = snapshot.val();
-            console.log(data);
+        // Lắng nghe sự thay đổi dữ liệu từ refCCCD
+        const unsubcribeCCCD = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refCCCD, (snapshot) => {
+            const data = snapshot.val(); // Lấy dữ liệu từ snapshot
+            console.log("Hiện dữ liệu đã từng :", JSON.stringify(data, null, 2));
+            // Nếu đây là lần chạy đầu tiên, không làm gì cả
             if (isFirstRun) {
-                isFirstRun = false;
+                isFirstRun = false; // Đánh dấu là đã chạy lần đầu
                 return;
             }
             else {
-                chrome.tabs.query({ active: true, lastFocusedWindow: true, currentWindow: true }, (tabs) => {
-                    const tabId = tabs.length === 0 ? 0 : tabs[0].id;
-                    chrome.tabs.sendMessage(tabId, {
-                        message: "ADDCCCD", data
-                    }, (response) => {
-                        console.log("Response from content ", response);
-                    });
+                // Gọi hàm gửi thông điệp đến tab hiện tại
+                sendMessageToCurrentTab(data);
+            }
+        });
+        // Lắng nghe sự thay đổi dữ liệu từ refIsAuto
+        const unsubscribeIsAuto = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refIsAuto, (snapshot) => {
+            const data = snapshot.val(); // Lấy dữ liệu từ snapshot
+            console.log(data);
+            // Nếu đây là lần chạy đầu tiên, không làm gì cả
+            if (isFirstAutoRun) {
+                isFirstAutoRun = false; // Đánh dấu là đã chạy lần đầu
+                return;
+            }
+            else {
+                isAutoRun = data; // Cập nhật trạng thái isAutoRun
+            }
+        });
+        const messageListener = (msg, sender, callback) => {
+            console.log("Đã nhận tin nhắn từ option ", msg);
+            if (msg.message === "finded" && isAutoRun) {
+                console.log("continueCCCD");
+                // Gửi lệnh tiếp tục đến cơ sở dữ liệu
+                (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+                    "Lenh": "continueCCCD",
+                    "TimeStamp": new Date().getTime().toString(),
+                    "DoiTuong": ""
                 });
             }
-        });
-        (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refIsAuto, (snapshot) => {
-            const data = snapshot.val();
-            console.log(data);
-            if (isFirstAutoRun) {
-                isFirstAutoRun = false;
-                return;
-            }
-            else {
-                isAutoRun = data;
-            }
-        });
-        chrome.runtime.onMessage.addListener((msg, sender, callback) => {
-            console.log("DDax nhan tin nhan toi opition ", msg);
-            if (msg.message === "finded") {
-                if (isAutoRun) {
-                    console.log("continueCCCD");
-                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), { "Lenh": "continueCCCD", "TimeStamp": new Date().getTime().toString(), "DoiTuong": "" });
-                }
-            }
-            return true;
-        });
-    }, []);
+            return true; // Đảm bảo callback không bị hủy
+        };
+        chrome.runtime.onMessage.addListener(messageListener);
+        return () => {
+            unsubcribeCCCD();
+            unsubscribeIsAuto();
+            chrome.runtime.onMessage.removeListener(messageListener);
+        };
+    }, []); // Chỉ chạy một lần khi component được mount
     return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "m-5", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleGetDataFromPNS, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_7__["default"], {}), children: "Ch\u1EA1y" }) }) }) }));
 }
 

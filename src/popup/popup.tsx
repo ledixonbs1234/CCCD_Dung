@@ -76,7 +76,7 @@ export default function Popup() {
     // Lắng nghe sự thay đổi dữ liệu từ refCCCD
     const unsubcribeCCCD = onValue(refCCCD, (snapshot) => {
       const data = snapshot.val(); // Lấy dữ liệu từ snapshot
-      console.log("Hiện dữ liệu đã từng :" + data);
+      console.log("Hiện dữ liệu đã từng :" ,JSON.stringify(data,null,2));
 
       // Nếu đây là lần chạy đầu tiên, không làm gì cả
       if (isFirstRun) {
