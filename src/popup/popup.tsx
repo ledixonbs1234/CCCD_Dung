@@ -49,6 +49,24 @@ export default function Popup() {
 
 
   };
+  // Hàm gửi thông điệp đến tab hiện tại
+  const sendMessageToCurrentTab = (data: any) => {
+    chrome.tabs.query(
+      { active: true, lastFocusedWindow: true, currentWindow: true },
+      (tabs) => {
+        const tabId = tabs.length === 0 ? 0 : tabs[0].id!; // Lấy ID của tab hiện tại
+        chrome.tabs.sendMessage(
+          tabId,
+          {
+            message: "ADDCCCD", data // Gửi thông điệp với dữ liệu CCCD
+          },
+          (response) => {
+            console.log("Response from content ", response); // Log phản hồi từ content script
+          }
+        );
+      }
+    );
+  };
   useEffect(() => {
     // Biến để xác định xem có đang chạy tự động hay không
     var isAutoRun = false;
@@ -56,7 +74,7 @@ export default function Popup() {
     let isFirstRun = true;
 
     // Lắng nghe sự thay đổi dữ liệu từ refCCCD
-    onValue(refCCCD, (snapshot) => {
+    const unsubcribeCCCD = onValue(refCCCD, (snapshot) => {
       const data = snapshot.val(); // Lấy dữ liệu từ snapshot
       console.log("Hiện dữ liệu đã từng :" + data);
 
@@ -65,27 +83,13 @@ export default function Popup() {
         isFirstRun = false; // Đánh dấu là đã chạy lần đầu
         return;
       } else {
-        // Nếu không phải lần đầu, gửi thông điệp đến tab hiện tại
-        chrome.tabs.query(
-          { active: true, lastFocusedWindow: true, currentWindow: true },
-          (tabs) => {
-            const tabId = tabs.length === 0 ? 0 : tabs[0].id!; // Lấy ID của tab hiện tại
-            chrome.tabs.sendMessage(
-              tabId,
-              {
-                message: "ADDCCCD", data // Gửi thông điệp với dữ liệu CCCD
-              },
-              (response) => {
-                console.log("Response from content ", response); // Log phản hồi từ content script
-              }
-            );
-          }
-        );
+        // Gọi hàm gửi thông điệp đến tab hiện tại
+      sendMessageToCurrentTab(data);
       }
     });
 
     // Lắng nghe sự thay đổi dữ liệu từ refIsAuto
-    onValue(refIsAuto, (snapshot) => {
+    const unsubscribeIsAuto = onValue(refIsAuto, (snapshot) => {
       const data = snapshot.val(); // Lấy dữ liệu từ snapshot
       console.log(data);
 
@@ -98,19 +102,26 @@ export default function Popup() {
       }
     });
 
-    // Lắng nghe thông điệp từ các phần khác của extension
-    chrome.runtime.onMessage.addListener((msg, sender, callback) => {
+    const messageListener = (msg: any, sender: any, callback: any) => {
       console.log("Đã nhận tin nhắn từ option ", msg);
-      if (msg.message === "finded") {
-        // Nếu nhận được thông điệp "finded"
-        if (isAutoRun) {
-          console.log("continueCCCD");
-          // Gửi lệnh tiếp tục đến cơ sở dữ liệu
-          set(ref(db, "CCCDAPP/message"), { "Lenh": "continueCCCD", "TimeStamp": new Date().getTime().toString(), "DoiTuong": "" });
-        }
+      if (msg.message === "finded" && isAutoRun) {
+        console.log("continueCCCD");
+        // Gửi lệnh tiếp tục đến cơ sở dữ liệu
+        set(ref(db, "CCCDAPP/message"), {
+          "Lenh": "continueCCCD",
+          "TimeStamp": new Date().getTime().toString(),
+          "DoiTuong": ""
+        });
       }
       return true; // Đảm bảo callback không bị hủy
-    });
+    };
+
+    chrome.runtime.onMessage.addListener(messageListener);
+    return () => {
+      unsubcribeCCCD();
+      unsubscribeIsAuto();
+      chrome.runtime.onMessage.removeListener(messageListener);
+    }
   }, []); // Chỉ chạy một lần khi component được mount
 
   return (
