@@ -27,7 +27,7 @@ const firebaseConfig = {
   appId: "1:892472148061:web:f22a5c4ffd25858726cdb4"
 };
 export default function Popup() {
-  
+
   initializeApp(firebaseConfig);
   const db = getDatabase();
   const refCCCD = ref(db, "CCCDAPP/" + "cccd");
@@ -42,69 +42,76 @@ export default function Popup() {
       iconUrl: "128.jpg",
     });
   };
-  
+
   let isFirstAutoRun = true;
   const handleGetDataFromPNS = async () => {
 
 
-   
+
   };
   useEffect(() => {
+    // Biến để xác định xem có đang chạy tự động hay không
     var isAutoRun = false;
+    // Biến để kiểm tra xem đây có phải là lần chạy đầu tiên hay không
     let isFirstRun = true;
+
+    // Lắng nghe sự thay đổi dữ liệu từ refCCCD
     onValue(refCCCD, (snapshot) => {
-      const data = snapshot.val();
-      console.log("Hiện dữ liệu đã từng :"+ data);
+      const data = snapshot.val(); // Lấy dữ liệu từ snapshot
+      console.log("Hiện dữ liệu đã từng :" + data);
+
+      // Nếu đây là lần chạy đầu tiên, không làm gì cả
       if (isFirstRun) {
-        isFirstRun = false;
+        isFirstRun = false; // Đánh dấu là đã chạy lần đầu
         return;
       } else {
+        // Nếu không phải lần đầu, gửi thông điệp đến tab hiện tại
         chrome.tabs.query(
           { active: true, lastFocusedWindow: true, currentWindow: true },
           (tabs) => {
-            const tabId = tabs.length === 0 ? 0 : tabs[0].id!;
+            const tabId = tabs.length === 0 ? 0 : tabs[0].id!; // Lấy ID của tab hiện tại
             chrome.tabs.sendMessage(
               tabId,
               {
-                message: "ADDCCCD", data
+                message: "ADDCCCD", data // Gửi thông điệp với dữ liệu CCCD
               },
               (response) => {
-                console.log("Response from content ", response);
+                console.log("Response from content ", response); // Log phản hồi từ content script
               }
             );
-          });
+          }
+        );
       }
-    })
+    });
+
+    // Lắng nghe sự thay đổi dữ liệu từ refIsAuto
     onValue(refIsAuto, (snapshot) => {
-      const data = snapshot.val();
+      const data = snapshot.val(); // Lấy dữ liệu từ snapshot
       console.log(data);
+
+      // Nếu đây là lần chạy đầu tiên, không làm gì cả
       if (isFirstAutoRun) {
-        isFirstAutoRun = false;
+        isFirstAutoRun = false; // Đánh dấu là đã chạy lần đầu
         return;
       } else {
-        isAutoRun = data;
-
-
+        isAutoRun = data; // Cập nhật trạng thái isAutoRun
       }
-    })
+    });
 
+    // Lắng nghe thông điệp từ các phần khác của extension
     chrome.runtime.onMessage.addListener((msg, sender, callback) => {
-      console.log("DDax nhan tin nhan toi opition ",msg);
+      console.log("Đã nhận tin nhắn từ option ", msg);
       if (msg.message === "finded") {
+        // Nếu nhận được thông điệp "finded"
         if (isAutoRun) {
-          console.log("continueCCCD")
-          set(ref(db, "CCCDAPP/message"), { "Lenh": "continueCCCD", "TimeStamp": new Date().getTime().toString(), "DoiTuong": "" })
+          console.log("continueCCCD");
+          // Gửi lệnh tiếp tục đến cơ sở dữ liệu
+          set(ref(db, "CCCDAPP/message"), { "Lenh": "continueCCCD", "TimeStamp": new Date().getTime().toString(), "DoiTuong": "" });
         }
       }
-      return true;
-    })
-  }, [])
-
-
-
-
-
-
+      return true; // Đảm bảo callback không bị hủy
+    });
+  }, []); // Chỉ chạy một lần khi component được mount
 
   return (
     <div className="m-5">
