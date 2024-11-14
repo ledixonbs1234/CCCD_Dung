@@ -1,64 +1,64 @@
 window.onload = () => {
-  console.log("chay contentScript");
-  let a =  document.querySelector("#HoTen") as HTMLInputElement;
-  var textTen = a?.value;
-  if (textTen == "") {
-    chrome.runtime.sendMessage({ message: "finded" }, (response) => {
-      return true;
-    });
+  console.log("Chạy contentScript");
+  const hoTenInput = document.querySelector("#HoTen") as HTMLInputElement;
+  const textTen = hoTenInput?.value;
+
+  if (!textTen) {
+    chrome.runtime.sendMessage({ message: "finded" });
   } else {
-    waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then( (e)  => {
-      var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
-      if (list.length == 1) {
-        if (e )
-          (e as HTMLButtonElement).click();
-        console.log("da tim thay onload");
-      }
-    });
+    
+    handleExistingInput();
   }
 };
-chrome.runtime.onMessage.addListener((msg, sender, callback) => {
-  console.log("Đã nhận được tin nhắn tới contentScript");
-  if (msg) {
-    if (msg.message === "ADDCCCD") {
-      var event = new Event("input", { bubbles: true });
+async function handleExistingInput() {
+  const button = await waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button");
+  const buttonList = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
 
-      let a: HTMLInputElement | null = document.querySelector("#HoTen");
-      a?.setAttribute("value", msg.data.Name);
-      a!.value = msg.data.Name;
-      a?.dispatchEvent(event);
-      let b: HTMLInputElement | null = document.querySelector("#NgaySinh");
-      b?.setAttribute("value", msg.data.NgaySinh);
-      b!.value = msg.data.NgaySinh;
-      b?.dispatchEvent(event);
-      let c: HTMLInputElement | null = document.querySelector("#submit");
-      c?.click()
-      // waitForElm("#Result > tbody > tr:nth-child(1) > td:nth-child(8) > button").then((e) => {
-      //   var list = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
-      //   if (list.length == 1) {
-      //     console.log("da tim thay addcccd")
-      //     // if (e) (e as HTMLInputElement).click();
-      //   }
-      // })
-    }
+  if (buttonList.length === 1 && button) {
+    // (button as HTMLButtonElement).click();
+    console.log("Đã tìm thấy onload");
+  }
+}
+chrome.runtime.onMessage.addListener((msg) => {
+  console.log("Đã nhận được tin nhắn tới contentScript");
+
+  if (msg && msg.message === "ADDCCCD") {
+    updateInputFields(msg.data);
   }
 });
 
+function updateInputFields(data: { Name: string; NgaySinh: string }) {
+  const hoTenInput = document.querySelector("#HoTen") as HTMLInputElement;
+  const ngaySinhInput = document.querySelector("#NgaySinh") as HTMLInputElement;
+  const submitButton = document.querySelector("#submit") as HTMLButtonElement;
 
-function waitForElm(selector: any) {
+  const event = new Event("input", { bubbles: true });
+
+  hoTenInput.value = data.Name;
+  hoTenInput.dispatchEvent(event);
+
+  ngaySinhInput.value = data.NgaySinh;
+  ngaySinhInput.dispatchEvent(event);
+
+  submitButton?.click();
+}
+
+
+function waitForElm(selector: string): Promise<Element | null> {
   return new Promise((resolve) => {
-    if (document.querySelector(selector)) {
-      return resolve(document.querySelector(selector));
+    const element = document.querySelector(selector);
+    if (element) {
+      return resolve(element);
     }
 
     const observer = new MutationObserver(() => {
-      if (document.querySelector(selector)) {
+      const element = document.querySelector(selector);
+      if (element) {
         observer.disconnect();
-        resolve(document.querySelector(selector));
+        resolve(element);
       }
     });
 
-    // If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
     observer.observe(document.body, {
       childList: true,
       subtree: true,
