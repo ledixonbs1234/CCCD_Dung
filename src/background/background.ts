@@ -23,7 +23,7 @@ function lastDayString() {
   return formatDate(today);
 }
 
-chrome.runtime.onMessage.addListener((data, _sender, response) => {
+chrome.runtime.onMessage.addListener(async (data, _sender, response) => {
   const { event, list ,content} = data;
   switch (event) {
     case "onSaveTenKhachHangs":
@@ -40,7 +40,9 @@ chrome.runtime.onMessage.addListener((data, _sender, response) => {
       chrome.storage.local.set({ ckhachhangs: list });
       break;
     case "onFetchData":
-      fetch("https://packnsend.vnpost.vn/Order/Home/ExportExcellOrderManage", {
+      try {
+        
+      const res = await fetch("https://packnsend.vnpost.vn/Order/Home/ExportExcellOrderManage", {
         headers: {
           accept: "*/*",
           "accept-language": "en-US,en;q=0.9,vi;q=0.8",
@@ -67,14 +69,12 @@ chrome.runtime.onMessage.addListener((data, _sender, response) => {
           "&Code=&CustomerCode=&Status=&ContactPhone=&TrackingCode=&Page=0&Channel=&senderDistrictId=0&senderWardId=0&flagConfig=&orderNumber=&serviceCodeMPITS=",
         method: "POST",
       })
-        .then((res) => res.json())
-        .then((data) => {
-          response(data);
-        })
-        .catch((error) => {
+      const data = await res.json();
+      response(data)
+      } catch (error) {
           console.log(error);
           response("ERROR");
-        });
+      }
       return true;
 
     default:

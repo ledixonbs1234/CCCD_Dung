@@ -1,12 +1,15 @@
+
 window.onload = () => {
   console.log("Chạy contentScript");
+
   const hoTenInput = document.querySelector("#HoTen") as HTMLInputElement;
   const textTen = hoTenInput?.value;
 
   if (!textTen) {
     chrome.runtime.sendMessage({ message: "finded" });
   } else {
-    
+    //thay vi handleInput thi send luon
+    // chrome.runtime.sendMessage({ message: "finded", ten: textTen });
     handleExistingInput();
   }
 };
@@ -15,7 +18,7 @@ async function handleExistingInput() {
   const buttonList = document.querySelectorAll("#Result > tbody > tr > td:nth-child(8) > button");
 
   if (buttonList.length === 1 && button) {
-    // (button as HTMLButtonElement).click();
+    (button as HTMLButtonElement).click();
     console.log("Đã tìm thấy onload");
   }
 }
