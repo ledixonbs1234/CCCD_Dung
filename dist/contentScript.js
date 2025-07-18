@@ -28,7 +28,7 @@ async function handleExistingInput() {
 }
 chrome.runtime.onMessage.addListener((msg) => {
     console.log("Đã nhận được tin nhắn tới contentScript");
-    if (msg && msg.message === "ADDCCCD") {
+    if (msg?.message === "ADDCCCD") {
         updateInputFields(msg.data);
     }
 });

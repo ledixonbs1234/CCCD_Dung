@@ -12,15 +12,10 @@ function formatDate(date: Date): string {
   const year = date.getFullYear();
   return `${day}%2F${month}%2F${year}`;
 }
-function toDayString() {
-  const today = new Date();
-  // today.setDate(today.getDate() - 12);
-  return formatDate(today);
-}
-function lastDayString() {
-  const today = new Date();
-  today.setDate(today.getDate() - 2);
-  return formatDate(today);
+function getDateString(daysOffset: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysOffset);
+  return formatDate(date);
 }
 
 chrome.runtime.onMessage.addListener(async (data, _sender, response) => {
@@ -63,9 +58,9 @@ chrome.runtime.onMessage.addListener(async (data, _sender, response) => {
         },
         body:
           "Id=0&FromDate=" +
-          lastDayString() +
+          getDateString(-2) +
           "+&ToDate=+" +
-          toDayString() +
+          getDateString(0) +
           "&Code=&CustomerCode=&Status=&ContactPhone=&TrackingCode=&Page=0&Channel=&senderDistrictId=0&senderWardId=0&flagConfig=&orderNumber=&serviceCodeMPITS=",
         method: "POST",
       })
