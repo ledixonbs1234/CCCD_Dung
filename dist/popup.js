@@ -228,8 +228,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
 /* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/RedoOutlined.js");
 /* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/CopyOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/SendOutlined.js");
 /* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/space/index.js");
 /* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/button/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/input/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_4__);
 
@@ -251,6 +253,7 @@ const firebaseConfig = {
 };
 function Popup() {
     const [errorRecords, setErrorRecords] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(null);
+    const [maHieu, setMaHieu] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
     (0,firebase_app__WEBPACK_IMPORTED_MODULE_2__.initializeApp)(firebaseConfig);
     const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.getDatabase)();
     const refCCCD = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/" + "cccd");
@@ -290,6 +293,24 @@ function Popup() {
         }).catch(err => {
             console.error("Lỗi khi sao chép: ", err);
             showNotification("Không thể sao chép dữ liệu.");
+        });
+    };
+    // MỚI: Hàm xử lý gửi mã hiệu
+    const handleSendMaHieu = () => {
+        if (!maHieu.trim()) {
+            showNotification("Vui lòng nhập mã hiệu.");
+            return;
+        }
+        (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+            "Lenh": "sendMaHieu",
+            "TimeStamp": new Date().getTime().toString(),
+            "DoiTuong": maHieu.trim()
+        }).then(() => {
+            showNotification(`Đã gửi mã hiệu: ${maHieu.trim()}`);
+            setMaHieu(""); // Clear input after sending
+        }).catch((error) => {
+            console.error("Lỗi khi gửi mã hiệu:", error);
+            showNotification("Không thể gửi mã hiệu.");
         });
     };
     const showNotification = (message) => {
@@ -374,7 +395,7 @@ function Popup() {
             chrome.runtime.onMessage.removeListener(messageListener);
         };
     }, []);
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "m-5", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleGetDataFromPNS, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_7__["default"], {}), children: "Ch\u1EA1y" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleCopyData, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_8__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "Sao ch\u00E9p B\u1EA3ng" })] }), errorRecords && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { style: { marginTop: '15px' }, children: "Danh s\u00E1ch l\u1ED7i \u0111\u00E3 \u0111\u1ED3ng b\u1ED9:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("pre", { style: { maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }, children: JSON.stringify(errorRecords, null, 2) })] }))] }) }));
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "m-5", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleGetDataFromPNS, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_7__["default"], {}), children: "Ch\u1EA1y" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleCopyData, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_8__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "Sao ch\u00E9p B\u1EA3ng" })] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h4", { style: { margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }, children: "G\u1EEDi M\u00E3 Hi\u1EC7u" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_9__["default"], { placeholder: "Nh\u1EADp m\u00E3 hi\u1EC7u...", value: maHieu, onChange: (e) => setMaHieu(e.target.value), onPressEnter: handleSendMaHieu, style: { flex: 1, width: 200 } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleSendMaHieu, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_10__["default"], {}), disabled: !maHieu.trim(), children: "G\u1EEDi M\u00E3 Hi\u1EC7u" })] })] }), errorRecords && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { style: { marginTop: '15px' }, children: "Danh s\u00E1ch l\u1ED7i \u0111\u00E3 \u0111\u1ED3ng b\u1ED9:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("pre", { style: { maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }, children: JSON.stringify(errorRecords, null, 2) })] }))] }) }));
 }
 
 
@@ -637,7 +658,7 @@ const store = (0,_reduxjs_toolkit__WEBPACK_IMPORTED_MODULE_1__.configureStore)({
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_css-loader_dist_runtime_api_js-node_modules_css-loader_dist_runtime_sour-7f547c","vendors-node_modules_ant-design_icons_es_icons_CopyOutlined_js-node_modules_ant-design_icons_-21fa1d"], () => (__webpack_require__("./src/popup/index.tsx")))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_css-loader_dist_runtime_api_js-node_modules_css-loader_dist_runtime_sour-7f547c","vendors-node_modules_ant-design_icons_es_icons_CopyOutlined_js-node_modules_ant-design_icons_-89b11c"], () => (__webpack_require__("./src/popup/index.tsx")))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()

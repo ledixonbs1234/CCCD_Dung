@@ -8,8 +8,8 @@ import {
 } from "firebase/database";
 
 // THAY ĐỔI: Thay đổi icon và loại bỏ xlsx
-import { RedoOutlined, CopyOutlined } from "@ant-design/icons";
-import { Button, Space } from "antd";
+import { RedoOutlined, CopyOutlined, SendOutlined } from "@ant-design/icons";
+import { Button, Space, Input } from "antd";
 import { useEffect, useState } from "react";
 
 const firebaseConfig = {
@@ -24,6 +24,7 @@ const firebaseConfig = {
 
 export default function Popup() {
   const [errorRecords, setErrorRecords] = useState(null);
+  const [maHieu, setMaHieu] = useState("");
 
   initializeApp(firebaseConfig);
   const db = getDatabase();
@@ -71,6 +72,26 @@ export default function Popup() {
     }).catch(err => {
       console.error("Lỗi khi sao chép: ", err);
       showNotification("Không thể sao chép dữ liệu.");
+    });
+  };
+
+  // MỚI: Hàm xử lý gửi mã hiệu
+  const handleSendMaHieu = () => {
+    if (!maHieu.trim()) {
+      showNotification("Vui lòng nhập mã hiệu.");
+      return;
+    }
+
+    set(ref(db, "CCCDAPP/message"), {
+      "Lenh": "sendMaHieu",
+      "TimeStamp": new Date().getTime().toString(),
+      "DoiTuong": maHieu.trim()
+    }).then(() => {
+      showNotification(`Đã gửi mã hiệu: ${maHieu.trim()}`);
+      setMaHieu(""); // Clear input after sending
+    }).catch((error) => {
+      console.error("Lỗi khi gửi mã hiệu:", error);
+      showNotification("Không thể gửi mã hiệu.");
     });
   };
 
@@ -191,6 +212,29 @@ export default function Popup() {
             Sao chép Bảng
           </Button>
         </Space>
+
+        {/* MỚI: Section gửi mã hiệu */}
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <h4 style={{ margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }}>Gửi Mã Hiệu</h4>
+          <Space style={{ width: '100%' }}>
+            <Input
+              placeholder="Nhập mã hiệu..."
+              value={maHieu}
+              onChange={(e) => setMaHieu(e.target.value)}
+              onPressEnter={handleSendMaHieu}
+              style={{ flex: 1,width:200 }}
+            />
+            <Button
+              onClick={handleSendMaHieu}
+              type="primary"
+              icon={<SendOutlined />}
+              disabled={!maHieu.trim()}
+            >
+              Gửi Mã Hiệu
+            </Button>
+          </Space>
+        </Space>
+
         {errorRecords && (
             <div>
                 <h3 style={{ marginTop: '15px' }}>Danh sách lỗi đã đồng bộ:</h3>
