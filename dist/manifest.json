@@ -11,8 +11,7 @@
         "newTab": "newTab.html"
     },
     "host_permissions": [
-        "*://*/*",
-        "*://*.example.org/*"
+        "https:/cccd.vnpost.vn/*"
     ],
     "permissions": [
         "tabs",

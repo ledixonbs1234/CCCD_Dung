@@ -324,11 +324,15 @@ function Popup() {
     let isFirstAutoRun = true;
     const handleGetDataFromPNS = async () => { };
     const sendMessageToCurrentTab = (data) => {
-        chrome.tabs.query({ active: true, lastFocusedWindow: true, currentWindow: true }, (tabs) => {
-            if (tabs.length === 0)
+        chrome.tabs.query({}, (tabs) => {
+            // Tìm tab đầu tiên có URL bắt đầu bằng https://cccd.vnpost.vn/
+            const targetTab = tabs.find(tab => tab.url && tab.url.startsWith("https://cccd.vnpost.vn/"));
+            if (!targetTab || !targetTab.id) {
+                console.log("Không tìm thấy tab có URL bắt đầu bằng https://cccd.vnpost.vn/");
+                showNotification("Không tìm thấy trang CCCD VNPost đang mở");
                 return;
-            const tabId = tabs[0].id;
-            chrome.tabs.sendMessage(tabId, { message: "ADDCCCD", data }, (response) => {
+            }
+            chrome.tabs.sendMessage(targetTab.id, { message: "ADDCCCD", data }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.log("Could not send message:", chrome.runtime.lastError.message);
                 }
@@ -349,7 +353,12 @@ function Popup() {
                 return;
             }
             else {
-                sendMessageToCurrentTab(data);
+                if (data.Name != "") {
+                    sendMessageToCurrentTab(data);
+                }
+                else {
+                    console.log("Không có dữ liệu CCCD để gửi");
+                }
             }
         });
         const unsubscribeIsAuto = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refIsAuto, (snapshot) => {
@@ -378,14 +387,27 @@ function Popup() {
             }
         });
         const messageListener = (msg, sender, callback) => {
-            if (msg.message === "finded" && isAutoRun) {
-                (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
-                    "Lenh": "continueCCCD",
-                    "TimeStamp": new Date().getTime().toString(),
-                    "DoiTuong": ""
-                });
+            if (isAutoRun) {
+                if (msg.message === "not_found") {
+                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+                        "Lenh": "notFound",
+                        "TimeStamp": new Date().getTime().toString(),
+                        "DoiTuong": msg.name || ""
+                    });
+                    // Handle not found case
+                }
+                else if (msg.message === "finded") {
+                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+                        "Lenh": "continueCCCD",
+                        "TimeStamp": new Date().getTime().toString(),
+                        "DoiTuong": ""
+                    });
+                }
             }
-            return true;
+            if (msg.message === "finded" && isAutoRun) {
+            }
+            else
+                return true;
         };
         chrome.runtime.onMessage.addListener(messageListener);
         return () => {

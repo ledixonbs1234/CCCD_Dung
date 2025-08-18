@@ -13,13 +13,13 @@ import { Button, Space, Input } from "antd";
 import { useEffect, useState } from "react";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAs9RtsXMRPeD5vpORJcWLDb1lEJZ3nUWI",
-    authDomain: "xonapp.firebaseapp.com",
-    databaseURL: "https://xonapp-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "xonapp",
-    storageBucket: "xonapp.appspot.com",
-    messagingSenderId: "892472148061",
-    appId: "1:892472148061:web:f22a5c4ffd25858726cdb4"
+  apiKey: "AIzaSyAs9RtsXMRPeD5vpORJcWLDb1lEJZ3nUWI",
+  authDomain: "xonapp.firebaseapp.com",
+  databaseURL: "https://xonapp-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "xonapp",
+  storageBucket: "xonapp.appspot.com",
+  messagingSenderId: "892472148061",
+  appId: "1:892472148061:web:f22a5c4ffd25858726cdb4"
 };
 
 export default function Popup() {
@@ -31,7 +31,7 @@ export default function Popup() {
   const refCCCD = ref(db, "CCCDAPP/" + "cccd");
   const refIsAuto = ref(db, "CCCDAPP/" + "cccdauto");
   // SỬA LỖI: Đường dẫn này phải khớp với hàm Flutter
-  const refErrorRecords = ref(db,"CCCDAPP/" + "errorcccd/records");
+  const refErrorRecords = ref(db, "CCCDAPP/" + "errorcccd/records");
 
   // MỚI: Hàm xử lý sao chép dữ liệu vào clipboard
   const handleCopyData = () => {
@@ -105,27 +105,33 @@ export default function Popup() {
   };
 
   let isFirstAutoRun = true;
-  const handleGetDataFromPNS = async () => {};
-  
+  const handleGetDataFromPNS = async () => { };
+
   const sendMessageToCurrentTab = (data: any) => {
-    chrome.tabs.query(
-      { active: true, lastFocusedWindow: true, currentWindow: true },
-      (tabs) => {
-        if (tabs.length === 0) return;
-        const tabId = tabs[0].id!;
-        chrome.tabs.sendMessage(
-          tabId,
-          { message: "ADDCCCD", data },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.log("Could not send message:", chrome.runtime.lastError.message);
-            } else {
-              console.log("Response from content ", response);
-            }
-          }
-        );
+    chrome.tabs.query({}, (tabs) => {
+      // Tìm tab đầu tiên có URL bắt đầu bằng https://cccd.vnpost.vn/
+      const targetTab = tabs.find(tab =>
+        tab.url && tab.url.startsWith("https://cccd.vnpost.vn/")
+      );
+
+      if (!targetTab || !targetTab.id) {
+        console.log("Không tìm thấy tab có URL bắt đầu bằng https://cccd.vnpost.vn/");
+        showNotification("Không tìm thấy trang CCCD VNPost đang mở");
+        return;
       }
-    );
+
+      chrome.tabs.sendMessage(
+        targetTab.id,
+        { message: "ADDCCCD", data },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.log("Could not send message:", chrome.runtime.lastError.message);
+          } else {
+            console.log("Response from content ", response);
+          }
+        }
+      );
+    });
   };
 
   useEffect(() => {
@@ -139,7 +145,12 @@ export default function Popup() {
         isFirstRun = false;
         return;
       } else {
-        sendMessageToCurrentTab(data);
+        if (data.Name != "") {
+          sendMessageToCurrentTab(data);
+        } else {
+          console.log("Không có dữ liệu CCCD để gửi");
+        }
+
       }
     });
 
@@ -152,33 +163,45 @@ export default function Popup() {
         isAutoRun = data;
       }
     });
-    
-    const unsubscribeErrorRecords = onValue(refErrorRecords, (snapshot) => {
-        const data = snapshot.val();
-        if (isFirstErrorRun) {
-            isFirstErrorRun = false;
-            if(data) setErrorRecords(data);
-            return;
-        }
 
-        console.log("Đã nhận được cập nhật dữ liệu lỗi:", data);
-        setErrorRecords(data);
-        
-        if (data) {
-            const recordCount = Object.keys(data).length;
-            showNotification(`Đã đồng bộ ${recordCount} bản ghi lỗi.`);
-        }
+    const unsubscribeErrorRecords = onValue(refErrorRecords, (snapshot) => {
+      const data = snapshot.val();
+      if (isFirstErrorRun) {
+        isFirstErrorRun = false;
+        if (data) setErrorRecords(data);
+        return;
+      }
+
+      console.log("Đã nhận được cập nhật dữ liệu lỗi:", data);
+      setErrorRecords(data);
+
+      if (data) {
+        const recordCount = Object.keys(data).length;
+        showNotification(`Đã đồng bộ ${recordCount} bản ghi lỗi.`);
+      }
     });
 
     const messageListener = (msg: any, sender: any, callback: any) => {
-      if (msg.message === "finded" && isAutoRun) {
-        set(ref(db, "CCCDAPP/message"), {
-          "Lenh": "continueCCCD",
-          "TimeStamp": new Date().getTime().toString(),
-          "DoiTuong": ""
-        });
+      if (isAutoRun) {
+        if (msg.message === "not_found") {
+          set(ref(db, "CCCDAPP/message"), {
+            "Lenh": "notFound",
+            "TimeStamp": new Date().getTime().toString(),
+            "DoiTuong": msg.name || ""
+          });
+          // Handle not found case
+        } else if (msg.message === "finded") {
+          set(ref(db, "CCCDAPP/message"), {
+            "Lenh": "continueCCCD",
+            "TimeStamp": new Date().getTime().toString(),
+            "DoiTuong": ""
+          });
+        }
       }
-      return true;
+
+      if (msg.message === "finded" && isAutoRun) {
+      } else
+        return true;
     };
 
     chrome.runtime.onMessage.addListener(messageListener);
@@ -222,7 +245,7 @@ export default function Popup() {
               value={maHieu}
               onChange={(e) => setMaHieu(e.target.value)}
               onPressEnter={handleSendMaHieu}
-              style={{ flex: 1,width:200 }}
+              style={{ flex: 1, width: 200 }}
             />
             <Button
               onClick={handleSendMaHieu}
@@ -236,12 +259,12 @@ export default function Popup() {
         </Space>
 
         {errorRecords && (
-            <div>
-                <h3 style={{ marginTop: '15px' }}>Danh sách lỗi đã đồng bộ:</h3>
-                <pre style={{ maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}>
-                    {JSON.stringify(errorRecords, null, 2)}
-                </pre>
-            </div>
+          <div>
+            <h3 style={{ marginTop: '15px' }}>Danh sách lỗi đã đồng bộ:</h3>
+            <pre style={{ maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}>
+              {JSON.stringify(errorRecords, null, 2)}
+            </pre>
+          </div>
         )}
       </Space>
     </div>
