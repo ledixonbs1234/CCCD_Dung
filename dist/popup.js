@@ -226,12 +226,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _asserts_tailwind_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../asserts/tailwind.css */ "./src/asserts/tailwind.css");
 /* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
 /* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/RedoOutlined.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/CopyOutlined.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/SendOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/EditOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/PlusOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/RedoOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/CopyOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/SendOutlined.js");
 /* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/space/index.js");
 /* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/button/index.js");
-/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/input/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/input/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/modal/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_4__);
 
@@ -254,12 +257,27 @@ const firebaseConfig = {
 function Popup() {
     const [errorRecords, setErrorRecords] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(null);
     const [maHieu, setMaHieu] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
+    const [firebaseKey, setFirebaseKey] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
+    const [currentFirebaseKey, setCurrentFirebaseKey] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
+    const [isKeyModalVisible, setIsKeyModalVisible] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
+    const [isKeySetupComplete, setIsKeySetupComplete] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
+    // Load Firebase key from storage on mount
+    (0,react__WEBPACK_IMPORTED_MODULE_4__.useEffect)(() => {
+        chrome.storage.local.get(['firebase_key'], (result) => {
+            const savedKey = result.firebase_key || "";
+            console.log("Loaded Firebase key from storage:", savedKey);
+            setCurrentFirebaseKey(savedKey);
+            setFirebaseKey(savedKey);
+            setIsKeySetupComplete(!!savedKey);
+        });
+    }, []);
+    // Dynamic Firebase path based on key
+    const getFirebasePath = (path) => {
+        const key = currentFirebaseKey;
+        return key ? `CCCDAPP/${key}/${path}` : `CCCDAPP/${path}`;
+    };
     (0,firebase_app__WEBPACK_IMPORTED_MODULE_2__.initializeApp)(firebaseConfig);
     const db = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.getDatabase)();
-    const refCCCD = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/" + "cccd");
-    const refIsAuto = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/" + "cccdauto");
-    // SỬA LỖI: Đường dẫn này phải khớp với hàm Flutter
-    const refErrorRecords = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/" + "errorcccd/records");
     // MỚI: Hàm xử lý sao chép dữ liệu vào clipboard
     const handleCopyData = () => {
         if (!errorRecords || Object.keys(errorRecords).length === 0) {
@@ -269,7 +287,7 @@ function Popup() {
         // Chuyển đổi object thành mảng
         const data = Object.values(errorRecords);
         // Tạo các hàng dữ liệu, mỗi cột phân tách bằng TAB (\t)
-        const dataRows = data.map((record, index) => {
+        const dataRows = data.map((record) => {
             // Làm sạch dữ liệu đầu vào, loại bỏ ký tự xuống dòng có thể gây lỗi
             const cells = [
                 record.errorIndex,
@@ -301,7 +319,8 @@ function Popup() {
             showNotification("Vui lòng nhập mã hiệu.");
             return;
         }
-        (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+        const refMessage = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, getFirebasePath("message"));
+        (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)(refMessage, {
             "Lenh": "sendMaHieu",
             "TimeStamp": new Date().getTime().toString(),
             "DoiTuong": maHieu.trim()
@@ -313,6 +332,59 @@ function Popup() {
             showNotification("Không thể gửi mã hiệu.");
         });
     };
+    // Firebase key management functions
+    const showFirebaseKeyDialog = () => {
+        setFirebaseKey(currentFirebaseKey);
+        setIsKeyModalVisible(true);
+    };
+    const saveFirebaseKey = () => {
+        // Key validation: alphanumeric, underscore, hyphen only, max 20 chars
+        const keyRegex = /^[a-zA-Z0-9_-]{1,20}$/;
+        if (!firebaseKey.trim()) {
+            showNotification("Firebase key không được để trống.");
+            return;
+        }
+        if (!keyRegex.test(firebaseKey.trim())) {
+            showNotification("Firebase key chỉ được chứa chữ, số, dấu gạch dưới và gạch ngang (tối đa 20 ký tự).");
+            return;
+        }
+        const newKey = firebaseKey.trim();
+        chrome.storage.local.set({ firebase_key: newKey }, () => {
+            setCurrentFirebaseKey(newKey);
+            setIsKeySetupComplete(true);
+            setIsKeyModalVisible(false);
+            showNotification(`Đã lưu Firebase key: ${newKey}`);
+            // Reload page to apply new Firebase paths
+            window.location.reload();
+        });
+    };
+    const clearFirebaseKey = () => {
+        chrome.storage.local.remove(['firebase_key'], () => {
+            setCurrentFirebaseKey("");
+            setFirebaseKey("");
+            setIsKeySetupComplete(false);
+            setIsKeyModalVisible(false);
+            showNotification("Đã xóa Firebase key. Sử dụng path mặc định.");
+            // Reload page to apply default Firebase paths
+            window.location.reload();
+        });
+    };
+    const getFirebaseStatus = () => {
+        if (currentFirebaseKey) {
+            return {
+                status: "active",
+                message: `🔑 Firebase Key: ${currentFirebaseKey}`,
+                style: { backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', color: '#389e0d' }
+            };
+        }
+        else {
+            return {
+                status: "warning",
+                message: "⚠️ Chưa cấu hình Firebase key",
+                style: { backgroundColor: '#fff7e6', border: '1px solid #ffd591', color: '#d46b08' }
+            };
+        }
+    };
     const showNotification = (message) => {
         chrome.notifications.create({
             message: message,
@@ -321,14 +393,13 @@ function Popup() {
             iconUrl: "128.jpg",
         });
     };
-    let isFirstAutoRun = true;
     const handleGetDataFromPNS = async () => { };
     const sendMessageToCurrentTab = (data) => {
         chrome.tabs.query({}, (tabs) => {
             // Tìm tab đầu tiên có URL bắt đầu bằng https://cccd.vnpost.vn/
-            const targetTab = tabs.find(tab => tab.url && tab.url.startsWith("https://cccd.vnpost.vn/"));
+            const targetTab = tabs.find(tab => tab.url && tab.url.startsWith("https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all"));
             if (!targetTab || !targetTab.id) {
-                console.log("Không tìm thấy tab có URL bắt đầu bằng https://cccd.vnpost.vn/");
+                console.log("Không tìm thấy tab có URL bắt đầu bằng https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all");
                 showNotification("Không tìm thấy trang CCCD VNPost đang mở");
                 return;
             }
@@ -342,18 +413,36 @@ function Popup() {
             });
         });
     };
+    // Firebase listeners effect - chỉ chạy sau khi currentFirebaseKey đã được load
     (0,react__WEBPACK_IMPORTED_MODULE_4__.useEffect)(() => {
+        // Đợi cho đến khi Chrome storage đã load xong
+        // currentFirebaseKey sẽ là "" (empty) hoặc có giá trị thực
+        // isKeySetupComplete sẽ cho biết đã hoàn thành việc load từ storage chưa
+        console.log("Firebase effect triggered. Key:", currentFirebaseKey, "Setup complete:", isKeySetupComplete);
+        // Tạo Firebase refs với key hiện tại (có thể là "" cho default path)
+        const refCCCD = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, getFirebasePath("cccd"));
+        const refIsAuto = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, getFirebasePath("cccdauto"));
+        const refErrorRecords = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, getFirebasePath("errorcccd/records"));
+        const refMessage = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, getFirebasePath("message"));
+        console.log("Firebase paths:", {
+            cccd: getFirebasePath("cccd"),
+            auto: getFirebasePath("cccdauto"),
+            error: getFirebasePath("errorcccd/records"),
+            message: getFirebasePath("message")
+        });
         var isAutoRun = false;
         let isFirstRun = true;
         let isFirstErrorRun = true;
+        let isFirstAutoRun = true;
         const unsubcribeCCCD = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refCCCD, (snapshot) => {
             const data = snapshot.val();
+            console.log("CCCD data received:", data, "with key:", currentFirebaseKey);
             if (isFirstRun) {
                 isFirstRun = false;
                 return;
             }
             else {
-                if (data.Name != "") {
+                if (data && data.Name != "") {
                     sendMessageToCurrentTab(data);
                 }
                 else {
@@ -363,6 +452,7 @@ function Popup() {
         });
         const unsubscribeIsAuto = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refIsAuto, (snapshot) => {
             const data = snapshot.val();
+            console.log("Auto state received:", data, "with key:", currentFirebaseKey);
             if (isFirstAutoRun) {
                 isFirstAutoRun = false;
                 return;
@@ -373,6 +463,7 @@ function Popup() {
         });
         const unsubscribeErrorRecords = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.onValue)(refErrorRecords, (snapshot) => {
             const data = snapshot.val();
+            console.log("Error records received:", data, "with key:", currentFirebaseKey);
             if (isFirstErrorRun) {
                 isFirstErrorRun = false;
                 if (data)
@@ -386,10 +477,10 @@ function Popup() {
                 showNotification(`Đã đồng bộ ${recordCount} bản ghi lỗi.`);
             }
         });
-        const messageListener = (msg, sender, callback) => {
+        const messageListener = (msg, _sender, _callback) => {
             if (isAutoRun) {
                 if (msg.message === "not_found") {
-                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)(refMessage, {
                         "Lenh": "notFound",
                         "TimeStamp": new Date().getTime().toString(),
                         "DoiTuong": msg.name || ""
@@ -397,7 +488,7 @@ function Popup() {
                     // Handle not found case
                 }
                 else if (msg.message === "finded") {
-                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)((0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, "CCCDAPP/message"), {
+                    (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)(refMessage, {
                         "Lenh": "continueCCCD",
                         "TimeStamp": new Date().getTime().toString(),
                         "DoiTuong": ""
@@ -411,13 +502,22 @@ function Popup() {
         };
         chrome.runtime.onMessage.addListener(messageListener);
         return () => {
+            console.log("Cleaning up Firebase listeners for key:", currentFirebaseKey);
             unsubcribeCCCD();
             unsubscribeIsAuto();
             unsubscribeErrorRecords();
             chrome.runtime.onMessage.removeListener(messageListener);
         };
-    }, []);
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "m-5", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleGetDataFromPNS, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_7__["default"], {}), children: "Ch\u1EA1y" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleCopyData, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_8__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "Sao ch\u00E9p B\u1EA3ng" })] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h4", { style: { margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }, children: "G\u1EEDi M\u00E3 Hi\u1EC7u" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_9__["default"], { placeholder: "Nh\u1EADp m\u00E3 hi\u1EC7u...", value: maHieu, onChange: (e) => setMaHieu(e.target.value), onPressEnter: handleSendMaHieu, style: { flex: 1, width: 200 } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleSendMaHieu, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_10__["default"], {}), disabled: !maHieu.trim(), children: "G\u1EEDi M\u00E3 Hi\u1EC7u" })] })] }), errorRecords && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { style: { marginTop: '15px' }, children: "Danh s\u00E1ch l\u1ED7i \u0111\u00E3 \u0111\u1ED3ng b\u1ED9:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("pre", { style: { maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }, children: JSON.stringify(errorRecords, null, 2) })] }))] }) }));
+    }, [currentFirebaseKey]); // Chỉ depend vào currentFirebaseKey
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { className: "m-5", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: {
+                            padding: '12px',
+                            borderRadius: '6px',
+                            ...getFirebaseStatus().style
+                        }, children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", { style: { fontSize: '13px', fontWeight: 'bold' }, children: getFirebaseStatus().message }), isKeySetupComplete ? ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { size: "small", type: "text", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_7__["default"], {}), onClick: showFirebaseKeyDialog, children: "S\u1EEDa" })) : ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { size: "small", type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_8__["default"], {}), onClick: showFirebaseKeyDialog, children: "Th\u00EAm Key" }))] }) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleGetDataFromPNS, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_9__["default"], {}), children: "Ch\u1EA1y" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleCopyData, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_10__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "Sao ch\u00E9p B\u1EA3ng" })] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h4", { style: { margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }, children: "G\u1EEDi M\u00E3 Hi\u1EC7u" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { placeholder: "Nh\u1EADp m\u00E3 hi\u1EC7u...", value: maHieu, onChange: (e) => setMaHieu(e.target.value), onPressEnter: handleSendMaHieu, style: { flex: 1, width: 200 } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: handleSendMaHieu, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_12__["default"], {}), disabled: !maHieu.trim(), children: "G\u1EEDi M\u00E3 Hi\u1EC7u" })] })] }), errorRecords && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { style: { marginTop: '15px' }, children: "Danh s\u00E1ch l\u1ED7i \u0111\u00E3 \u0111\u1ED3ng b\u1ED9:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("pre", { style: { maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }, children: JSON.stringify(errorRecords, null, 2) })] }))] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_13__["default"], { title: "C\u1EA5u h\u00ECnh Firebase Key", open: isKeyModalVisible, onOk: saveFirebaseKey, onCancel: () => setIsKeyModalVisible(false), okText: "L\u01B0u", cancelText: "H\u1EE7y", footer: [
+                    currentFirebaseKey && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { danger: true, onClick: clearFirebaseKey, style: { float: 'left' }, children: "X\u00F3a Key" }, "clear")),
+                    (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { onClick: () => setIsKeyModalVisible(false), children: "H\u1EE7y" }, "cancel"),
+                    (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_6__["default"], { type: "primary", onClick: saveFirebaseKey, children: "L\u01B0u" }, "save")
+                ], children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_5__["default"], { direction: "vertical", style: { width: '100%' }, children: [currentFirebaseKey && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", { children: "Key hi\u1EC7n t\u1EA1i:" }), " ", currentFirebaseKey] })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", { children: "Key m\u1EDBi:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { placeholder: "Nh\u1EADp Firebase key (v\u00ED d\u1EE5: user123, room001)", value: firebaseKey, onChange: (e) => setFirebaseKey(e.target.value), maxLength: 20, style: { marginTop: '8px' } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: { fontSize: '12px', color: '#666', marginTop: '4px' }, children: "Ch\u1EC9 \u0111\u01B0\u1EE3c ch\u1EE9a ch\u1EEF, s\u1ED1, d\u1EA5u g\u1EA1ch d\u01B0\u1EDBi (_) v\u00E0 g\u1EA1ch ngang (-). T\u1ED1i \u0111a 20 k\u00FD t\u1EF1." })] })] }) })] }));
 }
 
 
@@ -680,7 +780,7 @@ const store = (0,_reduxjs_toolkit__WEBPACK_IMPORTED_MODULE_1__.configureStore)({
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_css-loader_dist_runtime_api_js-node_modules_css-loader_dist_runtime_sour-7f547c","vendors-node_modules_ant-design_icons_es_icons_CopyOutlined_js-node_modules_ant-design_icons_-89b11c"], () => (__webpack_require__("./src/popup/index.tsx")))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_css-loader_dist_runtime_api_js-node_modules_css-loader_dist_runtime_sour-7f547c","vendors-node_modules_ant-design_icons_es_icons_CopyOutlined_js-node_modules_ant-design_icons_-3fcc3d"], () => (__webpack_require__("./src/popup/index.tsx")))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()

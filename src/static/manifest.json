@@ -1,8 +1,7 @@
 {
     "version": "1.1.1",
-    "name": "CCCD App",
+    "name": "CCCD HCC",
     "manifest_version": 3,
-    
     "options_page": "popup.html",
     "background": {
         "service_worker": "background.js"
@@ -11,10 +10,11 @@
         "newTab": "newTab.html"
     },
     "host_permissions": [
-        "https:/cccd.vnpost.vn/*"
+        "https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all*"
     ],
     "permissions": [
         "tabs",
+        "scripting",
         "bookmarks",
         "unlimitedStorage",
         "notifications",
@@ -30,7 +30,16 @@
                 "contentScript.js"
             ]
         }
-       
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "injected.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
     ],
     "content_security_policy": {
         "extension_pages": "script-src 'self'; object-src 'self'"

@@ -1,85 +1,111 @@
-chrome.runtime.onInstalled.addListener(() =>
-  console.log("Đã chạy ở chỗ này là background")
-)
 
-chrome.bookmarks.onCreated.addListener(() => {
-  console.log("Ban da bookmark tai day");
-});
+// background.ts (MV3 service worker)
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.cmd === 'RUN_IN_PAGE') {
+    console.log('Received RUN_IN_PAGE command with data:', msg.data);
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ ok: false, error: 'No tab id' });
+      return;
+    }
 
-function formatDate(date: Date): string {
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}%2F${month}%2F${year}`;
-}
-function getDateString(daysOffset: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + daysOffset);
-  return formatDate(date);
-}
+    chrome.scripting.executeScript({
+      target: { tabId },
+      func: (payload: any) => {
+        // --- code chạy TRONG page context ---
+        function toDDMMYYYY(d: Date) {
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        function normalize(v: string) {
+          // nếu truyền dd/mm/yyyy -> trả nguyên
+          if (typeof v !== 'string') return v;
+          if (v.includes('/')) return v;
+          // try ISO yyyy-mm-dd
+          const parsed = new Date(v);
+          if (!isNaN(parsed.getTime())) return toDDMMYYYY(parsed);
+          return v;
+        }
 
-chrome.runtime.onMessage.addListener(async (data, _sender, response) => {
-  const { event, list ,content} = data;
-  switch (event) {
-    case "onSaveTenKhachHangs":
-      chrome.storage.local.set({ tenkhachhangs: list });
-      break;
-    case "onSaveKhachHangs":
-      chrome.storage.local.set({ khachhangs: list });
-      break;
-    case "BADGE":
-      console.log(content)
-      chrome.action.setBadgeText({text:content.toString()});
-      break;
-    case "onSaveCurrentKhachHangs":
-      chrome.storage.local.set({ ckhachhangs: list });
-      break;
-    case "onFetchData":
-      try {
-        
-      const res = await fetch("https://packnsend.vnpost.vn/Order/Home/ExportExcellOrderManage", {
-        headers: {
-          accept: "*/*",
-          "accept-language": "en-US,en;q=0.9,vi;q=0.8",
-          "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-          "sec-ch-ua":
-            '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": '"Windows"',
-          "sec-fetch-dest": "empty",
-          "sec-fetch-mode": "cors",
-          "sec-fetch-site": "same-origin",
-          "x-requested-with": "XMLHttpRequest",
-          cookie:
-            "_ga=GA1.1.1252308094.1682309904; tctbdvn-_zldp=yr040hnCEdI2kxlbdwBeQuILj7FFHTSRALXKDo17bUf5oxEi8nvo1%2FHkNiXB4tD3VVj9liGvi%2BU%3D; _ga_PX3P5JLJ7K=GS1.1.1692945085.4.0.1692945085.0.0.0; _ga_TDJH6SEKEF=GS1.1.1703234131.4.1.1703234170.0.0.0; __SRVNAME=pns7; ASP.NET_SessionId=1tl4k4fo4bu5vhqwn53coee3; .ASPXAUTH=9E1633939FA3B00F904E422CCCB86B402F1B1A92F702B251189551D02FEB874EC894F1B04112D0BC9C69BFF93094451F2651D82616FEB484B469B41DDF924CC365801E490B1E3C2D21E993FBAB7EDCCB4716418487A4F9F4D87BC8C3F2A1F8175F2B8048EFC2B4FFABF23E7F62887AB9; panelIdCookie=userid=593280_xonld",
-          Referer:
-            "https://packnsend.vnpost.vn/tin/quan-ly-tin.html?startDate=11%2F02%2F2024&endDate=11%2F02%2F2024",
-          "Referrer-Policy": "strict-origin-when-cross-origin",
-        },
-        body:
-          "Id=0&FromDate=" +
-          getDateString(-2) +
-          "+&ToDate=+" +
-          getDateString(0) +
-          "&Code=&CustomerCode=&Status=&ContactPhone=&TrackingCode=&Page=0&Channel=&senderDistrictId=0&senderWardId=0&flagConfig=&orderNumber=&serviceCodeMPITS=",
-        method: "POST",
-      })
-      const data = await res.json();
-      response(data)
-      } catch (error) {
-          console.log(error);
-          response("ERROR");
-      }
-      return true;
+        try {
+          const data = payload;
+          const ngay = normalize(data.NgaySinh);
 
-    default:
-      break;
+          // 1) Nếu bootstrap-datepicker (jQuery) tồn tại -> dùng API
+          try {
+            if ((window as any).$ && (window as any).$.fn && (window as any).$.fn.datepicker) {
+              const $ = (window as any).$;
+              const picker = $('.datepicker-NgaySinh');
+              console.log('[EXT] Found bootstrap datepicker for #NgaySinh:', picker);
+              
+              if (picker && picker.length) {
+                picker.datepicker('update', ngay);
+              } else {
+                // fallback: set trên input trực tiếp
+                const input = document.querySelector('#NgaySinh') as HTMLInputElement | null;
+                if (input) {
+                  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                  if (setter) setter.call(input, ngay);
+                  else input.value = ngay;
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+              }
+            } else {
+              // 2) Try flatpickr instance
+              const input = document.querySelector('#NgaySinh') as any;
+              if (input && input._flatpickr) {
+                input._flatpickr.setDate(ngay, true);
+              } else if (input) {
+                // 3) fallback native + dispatch (this runs in page context so React listeners see it)
+                const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                if (setter) setter.call(input, ngay);
+                else input.value = ngay;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+              } else {
+                console.warn('[EXT] #NgaySinh input not found');
+              }
+            }
+
+            // Cập nhật họ tên, mã nếu cần (tương tự)
+            const nameInput = document.querySelector<HTMLInputElement>('#HoTen');
+            if (nameInput && data.Name) {
+              const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+              if (setter) setter.call(nameInput, data.Name);
+              else nameInput.value = data.Name;
+              nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+              nameInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            // Id vào MaHoSo hoặc MaBuuGui
+            const idInput = document.querySelector<HTMLInputElement>('#MaHoSo') || document.querySelector<HTMLInputElement>('#MaBuuGui');
+            if (idInput && data.Id) {
+              const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+              if (setter) setter.call(idInput, data.Id);
+              else idInput.value = data.Id;
+              idInput.dispatchEvent(new Event('input', { bubbles: true }));
+              idInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            // done
+          } catch (e) {
+            console.error('[EXT] Error updating fields', e);
+          }
+        } catch (err) {
+          console.error('payload error', err);
+        }
+      },
+      args: [msg.data]
+    }).then(() => {
+      sendResponse({ ok: true });
+    }).catch((err) => {
+      console.error('executeScript failed', err);
+      sendResponse({ ok: false, error: String(err) });
+    });
+
+    return true; // async
   }
-  console.log("Dang chay event", event);
 });
-
-const fetchData = () => {};
-
-// const handleStart = (list: []) => {
-//     chrome.storage.local.set({ "data": JSON.stringify(list) })
-// }
