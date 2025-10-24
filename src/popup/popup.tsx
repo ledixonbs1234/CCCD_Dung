@@ -122,7 +122,7 @@ export default function Popup() {
   const saveFirebaseKey = () => {
     // Key validation: alphanumeric, underscore, hyphen only, max 20 chars
     const keyRegex = /^[a-zA-Z0-9_-]{1,20}$/;
-    
+
     if (!firebaseKey.trim()) {
       showNotification("Firebase key không được để trống.");
       return;
@@ -139,7 +139,7 @@ export default function Popup() {
       setIsKeySetupComplete(true);
       setIsKeyModalVisible(false);
       showNotification(`Đã lưu Firebase key: ${newKey}`);
-      
+
       // Reload page to apply new Firebase paths
       window.location.reload();
     });
@@ -152,7 +152,7 @@ export default function Popup() {
       setIsKeySetupComplete(false);
       setIsKeyModalVisible(false);
       showNotification("Đã xóa Firebase key. Sử dụng path mặc định.");
-      
+
       // Reload page to apply default Firebase paths
       window.location.reload();
     });
@@ -175,11 +175,17 @@ export default function Popup() {
   };
 
   const showNotification = (message: string) => {
+    // Set time only show 800ms
     chrome.notifications.create({
       message: message,
       title: "Thông báo",
       type: "basic",
       iconUrl: "128.jpg",
+    }, (notificationId) => {
+      // Auto clear after 800ms
+      setTimeout(() => {
+        chrome.notifications.clear(notificationId);
+      }, 1500);
     });
   };
 
@@ -191,9 +197,11 @@ export default function Popup() {
 
   const handleGetDataFromPNS = async () => { };
 
-  const sendMessageToCurrentTab = (data: any) => {
-    chrome.tabs.query({}, (tabs) => {
-      // Tìm tab đầu tiên có URL bắt đầu bằng https://cccd.vnpost.vn/
+  const sendMessageToCurrentTab = async (data: any) => {
+    try {
+      const tabs = await chrome.tabs.query({});
+
+      // Tìm tab đầu tiên có URL bắt đầu bằng https://hanhchinhcong.vnpost.vn/
       const targetTab = tabs.find(tab =>
         tab.url && tab.url.startsWith("https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all")
       );
@@ -204,18 +212,384 @@ export default function Popup() {
         return;
       }
 
-      chrome.tabs.sendMessage(
-        targetTab.id,
-        { message: "ADDCCCD", data },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            console.log("Could not send message:", chrome.runtime.lastError.message);
-          } else {
-            console.log("Response from content ", response);
+      const tabId = targetTab.id;
+
+      // Encode the HoTen and NgaySinh parameters
+      const hoTenEncoded = encodeURIComponent(data.Name || "");
+      const ngaySinhEncoded = encodeURIComponent(data.NgaySinh || "");
+      // Tạo ngày hôm nay với format dd/MM/yyyy
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0
+      const year = today.getFullYear();
+      const ngayKetThuc = `${day}/${month}/${year}`; // Format: dd/MM/yyyy
+      const ngayKetThucEncoded = encodeURIComponent(ngayKetThuc);
+
+
+      // Build the new URL with updated parameters
+      const newUrl = `https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all?NhomThuTuc=NTT00002&MaThuTuc=TT0000007&HoTen=${hoTenEncoded}&NgaySinh=${ngaySinhEncoded}&DienThoai=&MaHoSo=&MaBuuGui=&NgayBatDau=01%2F10%2F2025&NgayKetThuc=${ngayKetThucEncoded}&QRcode=`;
+
+      // Update the tab URL
+      await chrome.tabs.update(tabId, { url: newUrl });
+      console.log("Tab URL updated successfully:", newUrl);
+
+      // Đợi trang load xong
+      await new Promise<void>((resolve) => {
+        const listener = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+          if (updatedTabId === tabId && changeInfo.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
           }
+        };
+        chrome.tabs.onUpdated.addListener(listener);
+
+        // Timeout sau 10s nếu không load xong
+        setTimeout(() => {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }, 10000);
+      });
+
+      console.log("Page loaded, executing automation script...");
+
+      // ✅ SET FLAG TRƯỚC KHI EXECUTE SCRIPT (popup có quyền chrome.storage)
+      await chrome.storage.local.set({ waitingForModal: true });
+      console.log("✅ Flag 'waitingForModal' set to true BEFORE script execution");
+
+      // Thực thi script automation: check checkbox và click submit
+      type AutomationResult = {
+        success: boolean;
+        reason: string;
+        name?: string;
+        message?: string;
+        error?: string;
+      };
+
+      const result = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (): Promise<AutomationResult> => {
+          return new Promise((resolve) => {
+            // Helper function: đợi element xuất hiện
+            function waitForElement(selector: string, timeout = 5000): Promise<Element | null> {
+              return new Promise((resolveWait) => {
+                const element = document.querySelector(selector);
+                if (element) {
+                  resolveWait(element);
+                  return;
+                }
+
+                const observer = new MutationObserver(() => {
+                  const el = document.querySelector(selector);
+                  if (el) {
+                    observer.disconnect();
+                    resolveWait(el);
+                  }
+                });
+
+                observer.observe(document.body, {
+                  childList: true,
+                  subtree: true,
+                });
+
+                setTimeout(() => {
+                  observer.disconnect();
+                  resolveWait(null);
+                }, timeout);
+              });
+            }
+
+            // Helper: check for "Không tìm thấy kết quả"
+            function waitForNoResultText(timeout = 5000): Promise<boolean> {
+              return new Promise((resolveWait) => {
+                const checkText = () => {
+                  const bodyDiv = document.querySelector("#listTbody");
+                  if (bodyDiv) {
+                    const textContent = bodyDiv.textContent || '';
+                    if (textContent.includes("Không tìm thấy kết quả")) {
+                      return true;
+                    }
+                  }
+                  return false;
+                };
+
+                if (checkText()) {
+                  resolveWait(true);
+                  return;
+                }
+
+                const observer = new MutationObserver(() => {
+                  if (checkText()) {
+                    observer.disconnect();
+                    resolveWait(true);
+                  }
+                });
+
+                observer.observe(document.body, {
+                  childList: true,
+                  subtree: true,
+                  characterData: true
+                });
+
+                setTimeout(() => {
+                  observer.disconnect();
+                  resolveWait(false);
+                }, timeout);
+              });
+            }
+
+            // Main automation logic
+            (async () => {
+              try {
+                // Race giữa checkbox xuất hiện và text "Không tìm thấy kết quả"
+                const raceResult = await Promise.race([
+                  waitForElement("#listTbody tr td div input").then(el => ({ type: 'checkbox' as const, element: el })),
+                  waitForNoResultText().then(found => ({ type: 'noResult' as const, found }))
+                ]);
+
+                if (raceResult.type === 'noResult') {
+                  // Không tìm thấy kết quả
+                  const hoTenInput = document.querySelector("#HoTen") as HTMLInputElement;
+                  const textTen = hoTenInput?.value || "";
+                  resolve({
+                    success: false,
+                    reason: 'not_found',
+                    name: textTen
+                  });
+                  return;
+                }
+
+                if (raceResult.type === 'checkbox') {
+                  const checkbox = raceResult.element as HTMLInputElement;
+
+                  // Check checkbox
+                  checkbox.checked = true;
+                  checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+                  console.log("✓ Checkbox checked");
+
+                  // Đợi một chút cho UI update
+                  await new Promise(r => setTimeout(r, 300));
+
+                  // Kiểm tra submit button
+                  const submitButton = document.getElementById("sub_xacnhan") as HTMLButtonElement;
+
+                  if (submitButton && !submitButton.disabled) {
+                    // Không click button nữa, thay vào đó BYPASS confirm và submit form trực tiếp
+                    console.log("� Bypassing button click - executing form logic directly");
+
+                    // Lấy danh sách giao dịch IDs từ các checkbox đã chọn (giống logic trong trang web)
+                    const giaoDichIds: string[] = [];
+                    const checkboxes = document.querySelectorAll('.inputCheckBox:checked');
+
+                    // Kiểm tra số lượng checkbox - chỉ nên có 1
+                    if (checkboxes.length === 0) {
+                      console.warn("⚠️ No checkboxes found");
+                      resolve({
+                        success: false,
+                        reason: 'no_checkbox_selected',
+                        message: 'No checkboxes are checked'
+                      });
+                      return;
+                    }
+
+                    if (checkboxes.length > 1) {
+                      console.warn("⚠️ Multiple records found:", checkboxes.length);
+                      resolve({
+                        success: false,
+                        reason: 'multiple_records',
+                        message: `Found ${checkboxes.length} records - expected only 1`
+                      });
+                      return;
+                    }
+
+                    checkboxes.forEach((checkbox: any) => {
+                      const giaoDichId = checkbox.value;
+                      if (giaoDichId) {
+                        giaoDichIds.push(giaoDichId);
+                      }
+                    });
+
+                    console.log("📋 Collected giaoDichIds:", giaoDichIds);
+
+                    // Cập nhật input hidden trong form (giống code trang web)
+                    const giaoDichIdsInput = document.querySelector('#xacNhan-form input[name="giaoDichIds"]') as HTMLInputElement;
+                    if (giaoDichIdsInput) {
+                      giaoDichIdsInput.value = giaoDichIds.join(',');
+                      console.log("✅ Updated giaoDichIds input:", giaoDichIdsInput.value);
+                    }
+
+                    // Submit form trực tiếp (BYPASS confirm dialog hoàn toàn)
+                    const form = document.getElementById('xacNhan-form') as HTMLFormElement;
+                    if (form) {
+                      console.log("📤 Submitting form (flag already set by popup)...");
+                      form.submit();
+
+                      console.log("✓ Form submitted - page will reload");
+                      resolve({
+                        success: true,
+                        reason: 'submitted'
+                      });
+                    } else {
+                      resolve({
+                        success: false,
+                        reason: 'form_not_found',
+                        message: 'Could not find xacNhan-form'
+                      });
+                    }
+                  } else {
+                    resolve({
+                      success: false,
+                      reason: 'submit_disabled',
+                      message: 'Submit button is disabled or not found'
+                    });
+                  }
+                } else {
+                  resolve({
+                    success: false,
+                    reason: 'timeout',
+                    message: 'Checkbox not found within timeout'
+                  });
+                }
+              } catch (error) {
+                resolve({
+                  success: false,
+                  reason: 'error',
+                  error: String(error)
+                });
+              }
+            })();
+          });
         }
-      );
-    });
+      });
+
+      const scriptResult = result[0]?.result as AutomationResult | undefined;
+      console.log("Automation result:", scriptResult);
+
+      if (scriptResult) {
+        if (scriptResult.success) {
+          console.log("✓ Form submitted, setting flag for modal detection after reload...");
+          
+          // Đặt flag trong storage để content script biết cần chờ modal sau khi reload
+          await chrome.storage.local.set({ waitingForModal: true });
+          
+          // Đợi message từ content script khi modal xuất hiện (sau khi trang reload)
+          const modalDetected = await new Promise<boolean>((resolveModal) => {
+            const messageListener = (message: any) => {
+              if (message.action === "modalDetected") {
+                console.log("✓ Modal detection result:", message);
+                chrome.runtime.onMessage.removeListener(messageListener);
+                resolveModal(message.success === true);
+              }
+            };
+            
+            chrome.runtime.onMessage.addListener(messageListener);
+            
+            // Timeout sau 15 giây nếu không phát hiện modal
+            setTimeout(() => {
+              chrome.runtime.onMessage.removeListener(messageListener);
+              console.warn("⚠️ Timeout waiting for modal");
+              chrome.storage.local.remove(['waitingForModal']);
+              resolveModal(false);
+            }, 7000);
+          });
+
+          if (modalDetected) {
+            // Hiển thị thông báo thành công trên trang web
+            await chrome.scripting.executeScript({
+              target: { tabId },
+              func: (name: string) => {
+                // Tạo div thông báo
+                const notification = document.createElement('div');
+                notification.textContent = `✓ Đã xử lý thành công: ${name}`;
+                notification.style.cssText = `
+                  position: fixed;
+                  bottom: 20px;
+                  right: 20px;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  color: white;
+                  padding: 16px 24px;
+                  border-radius: 12px;
+                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                  font-size: 16px;
+                  font-weight: 600;
+                  z-index: 10000;
+                  animation: slideIn 0.4s ease-out, fadeOut 0.4s ease-in 2.6s;
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                `;
+                
+                // Thêm animation CSS
+                const style = document.createElement('style');
+                style.textContent = `
+                  @keyframes slideIn {
+                    from {
+                      transform: translateX(400px);
+                      opacity: 0;
+                    }
+                    to {
+                      transform: translateX(0);
+                      opacity: 1;
+                    }
+                  }
+                  @keyframes fadeOut {
+                    from {
+                      opacity: 1;
+                    }
+                    to {
+                      opacity: 0;
+                    }
+                  }
+                `;
+                document.head.appendChild(style);
+                document.body.appendChild(notification);
+                
+                // Tự động xóa sau 3 giây
+                setTimeout(() => {
+                  notification.remove();
+                  style.remove();
+                }, 2000);
+              },
+              args: [data.Name || ""]
+            });
+
+            // Gửi message về Firebase nếu auto mode
+            const refMessage = ref(db, getFirebasePath("message"));
+            await set(refMessage, {
+              "Lenh": "continueCCCD",
+              "TimeStamp": new Date().getTime().toString(),
+              "DoiTuong": ""
+            });
+          } else {
+            showNotification(`⚠ Không phát hiện modal xác nhận`);
+          }
+        } else if (scriptResult.reason === 'not_found') {
+          showNotification(`✗ Không tìm thấy: ${scriptResult.name || data.Name || ""}`);
+
+          // Gửi message về Firebase
+          const refMessage = ref(db, getFirebasePath("message"));
+          await set(refMessage, {
+            "Lenh": "notFound",
+            "TimeStamp": new Date().getTime().toString(),
+            "DoiTuong": scriptResult.name || ""
+          });
+        } else if (scriptResult.reason === 'multiple_records') {
+          showNotification(`⚠️ Tìm thấy nhiều bản ghi: ${scriptResult.message || ""}`);
+
+          // Gửi message về Firebase - trường hợp trùng lặp
+          const refMessage = ref(db, getFirebasePath("message"));
+          await set(refMessage, {
+            "Lenh": "multipleRecords",
+            "TimeStamp": new Date().getTime().toString(),
+            "DoiTuong": data.Name || ""
+          });
+        } else {
+          showNotification(`⚠ Lỗi: ${scriptResult.message || scriptResult.reason}`);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error in sendMessageToCurrentTab:", error);
+      showNotification("Có lỗi xảy ra khi xử lý");
+    }
   };
 
   // Firebase listeners effect - chỉ chạy sau khi currentFirebaseKey đã được load
@@ -223,23 +597,20 @@ export default function Popup() {
     // Đợi cho đến khi Chrome storage đã load xong
     // currentFirebaseKey sẽ là "" (empty) hoặc có giá trị thực
     // isKeySetupComplete sẽ cho biết đã hoàn thành việc load từ storage chưa
-    
+
     console.log("Firebase effect triggered. Key:", currentFirebaseKey, "Setup complete:", isKeySetupComplete);
-    
+
     // Tạo Firebase refs với key hiện tại (có thể là "" cho default path)
     const refCCCD = ref(db, getFirebasePath("cccd"));
     const refIsAuto = ref(db, getFirebasePath("cccdauto"));
     const refErrorRecords = ref(db, getFirebasePath("errorcccd/records"));
-    const refMessage = ref(db, getFirebasePath("message"));
 
     console.log("Firebase paths:", {
       cccd: getFirebasePath("cccd"),
-      auto: getFirebasePath("cccdauto"), 
-      error: getFirebasePath("errorcccd/records"),
-      message: getFirebasePath("message")
+      auto: getFirebasePath("cccdauto"),
+      error: getFirebasePath("errorcccd/records")
     });
 
-    var isAutoRun = false;
     let isFirstRun = true;
     let isFirstErrorRun = true;
     let isFirstAutoRun = true;
@@ -247,7 +618,7 @@ export default function Popup() {
     const unsubcribeCCCD = onValue(refCCCD, (snapshot) => {
       const data = snapshot.val();
       console.log("CCCD data received:", data, "with key:", currentFirebaseKey);
-      
+
       if (isFirstRun) {
         isFirstRun = false;
         return;
@@ -263,19 +634,18 @@ export default function Popup() {
     const unsubscribeIsAuto = onValue(refIsAuto, (snapshot) => {
       const data = snapshot.val();
       console.log("Auto state received:", data, "with key:", currentFirebaseKey);
-      
+
       if (isFirstAutoRun) {
         isFirstAutoRun = false;
         return;
-      } else {
-        isAutoRun = data;
       }
+      // Auto state is monitored but handled by sendMessageToCurrentTab flow
     });
 
     const unsubscribeErrorRecords = onValue(refErrorRecords, (snapshot) => {
       const data = snapshot.val();
       console.log("Error records received:", data, "with key:", currentFirebaseKey);
-      
+
       if (isFirstErrorRun) {
         isFirstErrorRun = false;
         if (data) setErrorRecords(data);
@@ -291,37 +661,14 @@ export default function Popup() {
       }
     });
 
-    const messageListener = (msg: any, _sender: any, _callback: any) => {
-      if (isAutoRun) {
-        if (msg.message === "not_found") {
-          set(refMessage, {
-            "Lenh": "notFound",
-            "TimeStamp": new Date().getTime().toString(),
-            "DoiTuong": msg.name || ""
-          });
-          // Handle not found case
-        } else if (msg.message === "finded") {
-          set(refMessage, {
-            "Lenh": "continueCCCD",
-            "TimeStamp": new Date().getTime().toString(),
-            "DoiTuong": ""
-          });
-        }
-      }
-
-      if (msg.message === "finded" && isAutoRun) {
-      } else
-        return true;
-    };
-
-    chrome.runtime.onMessage.addListener(messageListener);
+    // Không còn cần message listener vì automation được xử lý trực tiếp trong sendMessageToCurrentTab
+    // Tất cả logic automation giờ chạy qua chrome.scripting.executeScript
 
     return () => {
       console.log("Cleaning up Firebase listeners for key:", currentFirebaseKey);
       unsubcribeCCCD();
       unsubscribeIsAuto();
       unsubscribeErrorRecords();
-      chrome.runtime.onMessage.removeListener(messageListener);
     }
   }, [currentFirebaseKey]); // Chỉ depend vào currentFirebaseKey
 
@@ -329,8 +676,8 @@ export default function Popup() {
     <div className="m-5">
       <Space direction="vertical" style={{ width: '100%' }}>
         {/* Firebase Key Management Section */}
-        <div style={{ 
-          padding: '12px', 
+        <div style={{
+          padding: '12px',
           borderRadius: '6px',
           ...getFirebaseStatus().style
         }}>
@@ -339,18 +686,18 @@ export default function Popup() {
               {getFirebaseStatus().message}
             </span>
             {isKeySetupComplete ? (
-              <Button 
-                size="small" 
-                type="text" 
+              <Button
+                size="small"
+                type="text"
                 icon={<EditOutlined />}
                 onClick={showFirebaseKeyDialog}
               >
                 Sửa
               </Button>
             ) : (
-              <Button 
-                size="small" 
-                type="primary" 
+              <Button
+                size="small"
+                type="primary"
                 icon={<PlusOutlined />}
                 onClick={showFirebaseKeyDialog}
               >
@@ -421,9 +768,9 @@ export default function Popup() {
         cancelText="Hủy"
         footer={[
           currentFirebaseKey && (
-            <Button 
-              key="clear" 
-              danger 
+            <Button
+              key="clear"
+              danger
               onClick={clearFirebaseKey}
               style={{ float: 'left' }}
             >
