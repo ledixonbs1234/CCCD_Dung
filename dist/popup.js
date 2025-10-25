@@ -396,10 +396,17 @@ function Popup() {
             // Auto clear after 800ms
             setTimeout(() => {
                 chrome.notifications.clear(notificationId);
-            }, 1500);
+            }, 2000);
         });
     };
-    const handleGetDataFromPNS = async () => { };
+    const handleGetDataFromPNS = async () => {
+        // Test automation với data mẫu
+        await sendMessageToCurrentTab({
+            Name: "Nguyễn Văn A",
+            NgaySinh: "01/01/1990",
+            Id: "001234567890"
+        });
+    };
     const sendMessageToCurrentTab = async (data) => {
         try {
             const tabs = await chrome.tabs.query({});
@@ -414,15 +421,23 @@ function Popup() {
             // Encode the HoTen and NgaySinh parameters
             const hoTenEncoded = encodeURIComponent(data.Name || "");
             const ngaySinhEncoded = encodeURIComponent(data.NgaySinh || "");
-            // Tạo ngày hôm nay với format dd/MM/yyyy
+            // Tạo ngày hôm nay với format dd/MM/yyyy (NgayKetThuc)
             const today = new Date();
             const day = String(today.getDate()).padStart(2, '0');
             const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0
             const year = today.getFullYear();
             const ngayKetThuc = `${day}/${month}/${year}`; // Format: dd/MM/yyyy
             const ngayKetThucEncoded = encodeURIComponent(ngayKetThuc);
+            // Tính NgayBatDau = NgayKetThuc - 2 tháng
+            const startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 2);
+            const startDay = String(startDate.getDate()).padStart(2, '0');
+            const startMonth = String(startDate.getMonth() + 1).padStart(2, '0');
+            const startYear = startDate.getFullYear();
+            const ngayBatDau = `${startDay}/${startMonth}/${startYear}`;
+            const ngayBatDauEncoded = encodeURIComponent(ngayBatDau);
             // Build the new URL with updated parameters
-            const newUrl = `https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all?NhomThuTuc=NTT00002&MaThuTuc=TT0000007&HoTen=${hoTenEncoded}&NgaySinh=${ngaySinhEncoded}&DienThoai=&MaHoSo=&MaBuuGui=&NgayBatDau=01%2F10%2F2025&NgayKetThuc=${ngayKetThucEncoded}&QRcode=`;
+            const newUrl = `https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all?NhomThuTuc=NTT00002&MaThuTuc=TT0000007&HoTen=${hoTenEncoded}&NgaySinh=${ngaySinhEncoded}&DienThoai=&MaHoSo=&MaBuuGui=&NgayBatDau=${ngayBatDauEncoded}&NgayKetThuc=${ngayKetThucEncoded}&QRcode=`;
             // Update the tab URL
             await chrome.tabs.update(tabId, { url: newUrl });
             console.log("Tab URL updated successfully:", newUrl);
@@ -442,9 +457,6 @@ function Popup() {
                 }, 10000);
             });
             console.log("Page loaded, executing automation script...");
-            // ✅ SET FLAG TRƯỚC KHI EXECUTE SCRIPT (popup có quyền chrome.storage)
-            await chrome.storage.local.set({ waitingForModal: true });
-            console.log("✅ Flag 'waitingForModal' set to true BEFORE script execution");
             const result = await chrome.scripting.executeScript({
                 target: { tabId },
                 func: () => {
@@ -625,10 +637,12 @@ function Popup() {
             console.log("Automation result:", scriptResult);
             if (scriptResult) {
                 if (scriptResult.success) {
-                    console.log("✓ Form submitted, setting flag for modal detection after reload...");
-                    // Đặt flag trong storage để content script biết cần chờ modal sau khi reload
-                    await chrome.storage.local.set({ waitingForModal: true });
-                    // Đợi message từ content script khi modal xuất hiện (sau khi trang reload)
+                    console.log("✅ Form will be submitted, setting session flag for background to monitor...");
+                    // Lưu tabId vào session storage để background theo dõi
+                    await chrome.storage.session.set({ waitingForModalTab: tabId });
+                    console.log(`✓ Session flag set for tabId: ${tabId}`);
+                    // Background sẽ tự động inject modal detector khi tab reload xong
+                    // Đợi message từ background/injected script về modal detection
                     const modalDetected = await new Promise((resolveModal) => {
                         const messageListener = (message) => {
                             if (message.action === "modalDetected") {
@@ -638,11 +652,11 @@ function Popup() {
                             }
                         };
                         chrome.runtime.onMessage.addListener(messageListener);
-                        // Timeout sau 15 giây nếu không phát hiện modal
+                        // Timeout sau 10 giây nếu không phát hiện modal
                         setTimeout(() => {
                             chrome.runtime.onMessage.removeListener(messageListener);
                             console.warn("⚠️ Timeout waiting for modal");
-                            chrome.storage.local.remove(['waitingForModal']);
+                            chrome.storage.session.remove(['waitingForModalTab']);
                             resolveModal(false);
                         }, 7000);
                     });
@@ -701,7 +715,7 @@ function Popup() {
                             },
                             args: [data.Name || ""]
                         });
-                        // Gửi message về Firebase nếu auto mode
+                        // Gửi message về Firebase để tiếp tục
                         const refMessage = (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.ref)(db, getFirebasePath("message"));
                         await (0,firebase_database__WEBPACK_IMPORTED_MODULE_3__.set)(refMessage, {
                             "Lenh": "continueCCCD",
