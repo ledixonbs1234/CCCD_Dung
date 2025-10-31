@@ -48,10 +48,12 @@ chrome.tabs.onUpdated.addListener((updatedTabId, info, _tab) => {
                         console.log("🔍 Starting modal detection...");
                         waitForElm("#flash-overlay-modal").then((elm) => {
                             if (elm) {
-                                console.log("✅ MODAL DETECTED! Sending message to popup...");
+                                console.log("✅ MODAL DETECTED! Sending message to background...");
+                                // ✅ Send message về background (script context có thể gọi chrome.runtime)
                                 chrome.runtime.sendMessage({
                                     action: "modalDetected",
-                                    success: true
+                                    success: true,
+                                    timestamp: Date.now()
                                 });
                             }
                             else {
@@ -59,28 +61,40 @@ chrome.tabs.onUpdated.addListener((updatedTabId, info, _tab) => {
                                 chrome.runtime.sendMessage({
                                     action: "modalDetected",
                                     success: false,
-                                    reason: "timeout"
+                                    reason: "timeout",
+                                    timestamp: Date.now()
                                 });
                             }
                         });
                     }
                 }).then(() => {
                     console.log("✓ Background: Modal detector script injected successfully");
+                    // ❌ KHÔNG XÓA FLAG Ở ĐÂY - để script trong tab tự xóa sau khi detect xong
                 }).catch(err => {
                     console.error("❌ Background: Failed to inject modal detector:", err);
+                    // Cleanup flag trên lỗi
+                    chrome.storage.session.remove(['waitingForModalTab']);
                 });
-                // Xóa flag session sau khi inject
-                chrome.storage.session.remove(['waitingForModalTab']);
             }
         });
     }
 });
-// Listener nhận message từ injected script và forward đến popup
+// ✅ Listener nhận message từ modal detector script và lưu vào storage
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
     if (message.action === "modalDetected") {
         console.log("📨 Background received modal detection result:", message);
-        // Message này sẽ được forward đến popup qua runtime.onMessage
-        // Popup listener sẽ nhận và xử lý
+        // Lưu kết quả vào storage
+        chrome.storage.session.set({
+            modalDetectionResult: {
+                success: message.success,
+                reason: message.reason,
+                timestamp: message.timestamp || Date.now()
+            }
+        }).then(() => {
+            console.log("✅ Background saved modal result to storage:", message.success);
+            // Cleanup flag
+            chrome.storage.session.remove(['waitingForModalTab']);
+        });
     }
 });
 console.log("✅ CCCD Background Service Worker loaded - Modal detection ready");

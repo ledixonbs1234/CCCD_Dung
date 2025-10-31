@@ -399,6 +399,26 @@ function Popup() {
             }, 2000);
         });
     };
+    // ✅ HÀM MỚI: Polling storage để đợi kết quả modal detection
+    const waitForModalResult = async (timeout = 7000) => {
+        const startTime = Date.now();
+        console.log(`🔍 Polling for modal result...`);
+        while (Date.now() - startTime < timeout) {
+            const result = await chrome.storage.session.get(['modalDetectionResult']);
+            if (result.modalDetectionResult) {
+                console.log("✅ Got modal result from storage:", result.modalDetectionResult);
+                // Cleanup storage
+                await chrome.storage.session.remove(['modalDetectionResult', 'waitingForModalTab']);
+                return result.modalDetectionResult.success === true;
+            }
+            // Đợi 200ms trước khi check lại
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        console.warn("⚠️ Timeout waiting for modal result");
+        // Cleanup trên timeout
+        await chrome.storage.session.remove(['waitingForModalTab']);
+        return false;
+    };
     const handleGetDataFromPNS = async () => {
         // Test automation với data mẫu
         await sendMessageToCurrentTab({
@@ -441,6 +461,8 @@ function Popup() {
             // Update the tab URL
             await chrome.tabs.update(tabId, { url: newUrl });
             console.log("Tab URL updated successfully:", newUrl);
+            // ❌ KHÔNG set flag ở đây - sẽ trigger background ở lần load đầu tiên (chưa có modal)
+            // Flag sẽ được set TRONG executeScript, TRƯỚC khi form.submit()
             // Đợi trang load xong
             await new Promise((resolve) => {
                 const listener = (updatedTabId, changeInfo) => {
@@ -587,15 +609,13 @@ function Popup() {
                                             giaoDichIdsInput.value = giaoDichIds.join(',');
                                             console.log("✅ Updated giaoDichIds input:", giaoDichIdsInput.value);
                                         }
-                                        // Submit form trực tiếp (BYPASS confirm dialog hoàn toàn)
+                                        // ✅ KHÔNG submit ngay - return success để options page set flag trước
                                         const form = document.getElementById('xacNhan-form');
                                         if (form) {
-                                            console.log("📤 Submitting form (flag already set by popup)...");
-                                            form.submit();
-                                            console.log("✓ Form submitted - page will reload");
+                                            console.log("✅ Form ready to submit (waiting for flag to be set)...");
                                             resolve({
                                                 success: true,
-                                                reason: 'submitted'
+                                                reason: 'ready_to_submit' // ← Changed from 'submitted'
                                             });
                                         }
                                         else {
@@ -637,29 +657,33 @@ function Popup() {
             console.log("Automation result:", scriptResult);
             if (scriptResult) {
                 if (scriptResult.success) {
-                    console.log("✅ Form will be submitted, setting session flag for background to monitor...");
-                    // Lưu tabId vào session storage để background theo dõi
-                    await chrome.storage.session.set({ waitingForModalTab: tabId });
-                    console.log(`✓ Session flag set for tabId: ${tabId}`);
-                    // Background sẽ tự động inject modal detector khi tab reload xong
-                    // Đợi message từ background/injected script về modal detection
-                    const modalDetected = await new Promise((resolveModal) => {
-                        const messageListener = (message) => {
-                            if (message.action === "modalDetected") {
-                                console.log("✓ Modal detection result:", message);
-                                chrome.runtime.onMessage.removeListener(messageListener);
-                                resolveModal(message.success === true);
-                            }
-                        };
-                        chrome.runtime.onMessage.addListener(messageListener);
-                        // Timeout sau 10 giây nếu không phát hiện modal
-                        setTimeout(() => {
-                            chrome.runtime.onMessage.removeListener(messageListener);
-                            console.warn("⚠️ Timeout waiting for modal");
-                            chrome.storage.session.remove(['waitingForModalTab']);
-                            resolveModal(false);
-                        }, 7000);
+                    console.log("✅ Form ready to submit, setting flag NOW...");
+                    // ✅ Set flag TRƯỚC KHI submit
+                    await chrome.storage.session.set({
+                        waitingForModalTab: tabId,
+                        setAt: Date.now()
                     });
+                    console.log(`✓ Session flag set for tabId: ${tabId}`);
+                    // Đợi một chút để ensure flag được commit
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // ✅ BÂY GIỜ MỚI SUBMIT FORM
+                    console.log("📤 Submitting form NOW...");
+                    await chrome.scripting.executeScript({
+                        target: { tabId },
+                        func: () => {
+                            const form = document.getElementById('xacNhan-form');
+                            if (form) {
+                                console.log("✓ Submitting form...");
+                                form.submit();
+                                return true;
+                            }
+                            return false;
+                        }
+                    });
+                    console.log("✓ Form submitted, waiting for modal detection...");
+                    // Background sẽ tự động inject modal detector khi tab reload xong
+                    // Đợi kết quả modal detection từ storage (polling)
+                    const modalDetected = await waitForModalResult();
                     if (modalDetected) {
                         // Hiển thị thông báo thành công trên trang web
                         await chrome.scripting.executeScript({
