@@ -5,12 +5,19 @@ import {
   ref,
   onValue,
   set,
+  get,
+  push,
+  remove,
 } from "firebase/database";
 
 // THAY ĐỔI: Thay đổi icon và loại bỏ xlsx
-import { RedoOutlined, CopyOutlined, SendOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { RedoOutlined, CopyOutlined, SendOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { Button, Space, Input, Modal } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { generateCCCDList, CCCDInfo } from "./utils/cccdGenerator";
+import QueueStatusPanel from "./components/QueueStatusPanel";
+import CurrentCCCDDisplay from "./components/CurrentCCCDDisplay";
+import AutoRunControls from "./components/AutoRunControls";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAs9RtsXMRPeD5vpORJcWLDb1lEJZ3nUWI",
@@ -29,6 +36,23 @@ export default function Popup() {
   const [currentFirebaseKey, setCurrentFirebaseKey] = useState("");
   const [isKeyModalVisible, setIsKeyModalVisible] = useState(false);
   const [isKeySetupComplete, setIsKeySetupComplete] = useState(false);
+
+  // ✅ NEW: Queue management states
+  const [queueData, setQueueData] = useState<Record<string, CCCDInfo>>({});
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [currentCCCD, setCurrentCCCD] = useState<CCCDInfo | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // ✅ CRITICAL FIX: useRef để persist lock across re-renders
+  const processingLockRef = useRef(false);
+
+  // ✅ Helper function to release processing lock
+  const releaseLock = () => {
+    processingLockRef.current = false;
+    setIsProcessing(false);
+    console.log("🔓 Processing lock released");
+  };
 
   // Load Firebase key from storage on mount
   useEffect(() => {
@@ -57,38 +81,67 @@ export default function Popup() {
       return;
     }
 
-    // Chuyển đổi object thành mảng
-    const data: any[] = Object.values(errorRecords);
+    try {
+      // Chuyển đổi object thành mảng với key là index
+      const dataArray = Object.entries(errorRecords).map(([key, record]: [string, any], index) => ({
+        index: index + 1,
+        key: key,
+        ...record
+      }));
 
+      console.log("Data to copy:", dataArray);
 
-    // Tạo các hàng dữ liệu, mỗi cột phân tách bằng TAB (\t)
-    const dataRows = data.map((record) => {
-      // Làm sạch dữ liệu đầu vào, loại bỏ ký tự xuống dòng có thể gây lỗi
+      // Tạo các hàng dữ liệu, mỗi cột phân tách bằng TAB (\t)
+      // Sử dụng chỉ số của map để tạo số thứ tự (bắt đầu từ 1) thay vì dùng record.index
+      const dataRows = dataArray.map((record, idx) => {
+        const cells = [
+          idx + 1,                                    // STT (số thứ tự bắt đầu từ 1)
+          record.Id || '',                            // Số CCCD
+          record.Name || '',                          // Họ tên
+          record.NgaySinh || '',                      // Ngày sinh
+          record.gioiTinh || '',                      // Giới tính
+          record.DiaChi || '',                        // Địa chỉ
+        ];
+        return cells.join('\t'); // Nối các ô bằng ký tự TAB
+      });
 
-      const cells = [
-        record.errorIndex,
-        record.maBuuGui,
-        record.Id || '',
-        record.Name || '',
-        record.NgaySinh || '',
-        record.gioiTinh || '',
-        record.DiaChi || '',
-        ,
-      ];
-      return cells.join('\t'); // Nối các ô bằng ký tự TAB
-    });
+      // Kết hợp các hàng dữ liệu, mỗi hàng phân tách bằng ký tự xuống dòng (\n)
+      const clipboardText = dataRows.join('\n');
 
-    // Kết hợp tiêu đề và các hàng dữ liệu, mỗi hàng phân tách bằng ký tự xuống dòng (\n)
-    const clipboardText = [
-      ...dataRows
-    ].join('\n');
+      console.log("Clipboard text:", clipboardText);
 
-    // Sử dụng Clipboard API để sao chép
-    navigator.clipboard.writeText(clipboardText).then(() => {
-      showNotification("Đã sao chép dữ liệu vào clipboard!");
-    }).catch(err => {
-      console.error("Lỗi khi sao chép: ", err);
-      showNotification("Không thể sao chép dữ liệu.");
+      // Sử dụng Clipboard API để sao chép
+      navigator.clipboard.writeText(clipboardText).then(() => {
+        showNotification(`✅ Đã sao chép ${dataArray.length} bản ghi vào clipboard!`);
+      }).catch(err => {
+        console.error("Lỗi khi sao chép: ", err);
+        showNotification("❌ Không thể sao chép dữ liệu.");
+      });
+    } catch (error) {
+      console.error("Error in handleCopyData:", error);
+      showNotification("❌ Lỗi khi xử lý dữ liệu sao chép.");
+    }
+  };
+
+  // MỚI: Hàm xóa danh sách lỗi
+  const handleClearErrorRecords = () => {
+    Modal.confirm({
+      title: 'Xác nhận xóa danh sách lỗi',
+      content: 'Bạn có chắc chắn muốn xóa toàn bộ danh sách lỗi?',
+      okText: 'Xóa',
+      cancelText: 'Hủy',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const refErrorRecords = ref(db, getFirebasePath("errorcccd/records"));
+          await remove(refErrorRecords);
+          
+          showNotification("✅ Đã xóa danh sách lỗi");
+        } catch (error) {
+          console.error("Error clearing error records:", error);
+          showNotification("❌ Lỗi khi xóa danh sách lỗi");
+        }
+      }
     });
   };
 
@@ -189,7 +242,279 @@ export default function Popup() {
     });
   };
 
+  // ✅ NEW: Upload CCCD Queue to Firebase
+  const uploadCCCDQueue = async (cccdList: CCCDInfo[]) => {
+    try {
+      const refQueue = ref(db, getFirebasePath("cccdQueue"));
+      
+      // Clear existing queue first
+      await remove(refQueue);
+      
+      // Upload each CCCD
+      for (const cccd of cccdList) {
+        await push(refQueue, cccd);
+      }
+      
+      // Reset currentIndex
+      const refIndex = ref(db, getFirebasePath("currentIndex"));
+      await set(refIndex, 0);
+      
+      showNotification(`✅ Đã tải lên ${cccdList.length} CCCD`);
+      console.log(`Uploaded ${cccdList.length} CCCD to Firebase`);
+    } catch (error) {
+      console.error("Error uploading CCCD queue:", error);
+      showNotification("❌ Lỗi khi tải lên Firebase");
+    }
+  };
+
+  // ✅ NEW: Process Next CCCD
+  const processNextCCCD = async () => {
+    // ✅ CRITICAL FIX: Check global lock trước
+    if (processingLockRef.current) {
+      console.log("⚠️ Processing locked, another CCCD is being processed. Skip...");
+      return;
+    }
+
+    if (isProcessing) {
+      console.log("Already processing, skip...");
+      return;
+    }
+
+    try {
+      // ✅ Set global lock NGAY LẬP TỨC
+      processingLockRef.current = true;
+      setIsProcessing(true);
+      console.log("🔒 Processing lock acquired");
+      
+      // 1️⃣ Kiểm tra auto-run state
+      const refAuto = ref(db, getFirebasePath("cccdauto"));
+      const autoSnapshot = await get(refAuto);
+      
+      if (!autoSnapshot.val()) {
+        console.log("Auto-run is OFF, stopping...");
+        showNotification("🛑 Đã dừng tự động");
+        releaseLock();
+        return;
+      }
+
+      // 2️⃣ Lấy danh sách CCCD
+      const refQueue = ref(db, getFirebasePath("cccdQueue"));
+      const queueSnapshot = await get(refQueue);
+      
+      if (!queueSnapshot.exists()) {
+        console.log("Queue is empty");
+        showNotification("✅ Đã xử lý hết danh sách");
+        
+        // Tắt auto-run
+        await set(refAuto, false);
+        releaseLock();
+        return;
+      }
+
+      const queueObj = queueSnapshot.val();
+      const cccdList = Object.entries(queueObj).map(([key, value]: [string, any]) => ({
+        key,
+        ...value
+      }));
+      
+      // 3️⃣ Sắp xếp theo createdAt (thay vì index)
+      cccdList.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeA - timeB;
+      });
+
+      // 4️⃣ Tìm CCCD đầu tiên có status "pending"
+      const nextCCCD = cccdList.find((cccd) => cccd.status === "pending");
+
+      if (!nextCCCD) {
+        console.log("No pending CCCD found");
+        showNotification("✅ Đã xử lý hết danh sách");
+        
+        // Tắt auto-run
+        await set(refAuto, false);
+        releaseLock();
+        return;
+      }
+
+      // 5️⃣ Cập nhật status thành "processing"
+      const cccdKey = (nextCCCD as any).key;
+      const refCCCDStatus = ref(db, getFirebasePath(`cccdQueue/${cccdKey}/status`));
+      await set(refCCCDStatus, "processing");
+
+      // 6️⃣ Cập nhật currentIndex (cho UI display - dựa vào vị trí trong mảng đã sort)
+      const currentIdx = cccdList.findIndex((c) => c.key === cccdKey);
+      const refIndex = ref(db, getFirebasePath("currentIndex"));
+      await set(refIndex, currentIdx);
+
+      // 7️⃣ Xử lý CCCD
+      console.log("Processing CCCD:", nextCCCD);
+      await sendMessageToCurrentTab(nextCCCD, cccdKey);
+      
+      // ✅ Lock sẽ được release trong sendMessageToCurrentTab sau khi hoàn thành
+
+    } catch (error) {
+      console.error("Error processing next CCCD:", error);
+      showNotification("❌ Lỗi khi xử lý CCCD tiếp theo");
+      releaseLock();
+    }
+  };
+
+  // ✅ NEW: Update CCCD Status
+  const updateCCCDStatus = async (
+    cccdKey: string, 
+    status: 'completed' | 'error', 
+    errorReason?: string
+  ) => {
+    try {
+      const refStatus = ref(db, getFirebasePath(`cccdQueue/${cccdKey}/status`));
+      await set(refStatus, status);
+      
+      const refProcessedAt = ref(db, getFirebasePath(`cccdQueue/${cccdKey}/processedAt`));
+      await set(refProcessedAt, new Date().toISOString());
+      
+      if (errorReason) {
+        const refErrorReason = ref(db, getFirebasePath(`cccdQueue/${cccdKey}/errorReason`));
+        await set(refErrorReason, errorReason);
+      }
+      
+      console.log(`Updated CCCD ${cccdKey} status to ${status}`);
+    } catch (error) {
+      console.error("Error updating CCCD status:", error);
+    }
+  };
+
+  // ✅ NEW: Generate Random CCCD List
+  const handleGenerateRandomCCCD = async () => {
+    const cccdList = generateCCCDList(50);
+    await uploadCCCDQueue(cccdList);
+  };
+
+  // ✅ NEW: Start Auto-run
+  const handleStartAutoRun = async () => {
+    const refAuto = ref(db, getFirebasePath("cccdauto"));
+    await set(refAuto, true);
+    
+    showNotification("▶️ Đã bật Auto-run");
+    
+    // Trigger xử lý ngay
+    processNextCCCD();
+  };
+
+  // ✅ NEW: Stop Auto-run
+  const handleStopAutoRun = async () => {
+    const refAuto = ref(db, getFirebasePath("cccdauto"));
+    await set(refAuto, false);
+    
+    showNotification("⏸️ Đã tắt Auto-run");
+  };
+
+  // ✅ NEW: Navigate to Previous CCCD
+  const handleNavigatePrevious = async () => {
+    if (currentIndex > 0) {
+      const refIndex = ref(db, getFirebasePath("currentIndex"));
+      await set(refIndex, currentIndex - 1);
+      // showNotification(`← Chuyển về CCCD #${currentIndex}`);
+    }
+  };
+
+  // ✅ NEW: Navigate to Next CCCD
+  const handleNavigateNext = async () => {
+    const cccdList = Object.values(queueData);
+    if (currentIndex < cccdList.length - 1) {
+      const refIndex = ref(db, getFirebasePath("currentIndex"));
+      await set(refIndex, currentIndex + 1);
+      // showNotification(`→ Chuyển sang CCCD #${currentIndex + 2}`);
+    }
+  };
+
+  // ✅ NEW: Process Current CCCD (manual single process)
+  const handleProcessCurrent = async () => {
+    if (isProcessing) {
+      showNotification("⚠️ Đang xử lý, vui lòng đợi");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      // Get current CCCD from queue
+      const refQueue = ref(db, getFirebasePath("cccdQueue"));
+      const queueSnapshot = await get(refQueue);
+      
+      if (!queueSnapshot.exists()) {
+        showNotification("❌ Không có CCCD trong hàng đợi");
+        setIsProcessing(false);
+        return;
+      }
+
+      const queueObj = queueSnapshot.val();
+      const cccdList = Object.entries(queueObj).map(([key, value]: [string, any]) => ({
+        key,
+        ...value
+      }));
+      
+      // Sắp xếp theo createdAt
+      cccdList.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeA - timeB;
+      });
+
+      // Tìm CCCD theo vị trí currentIndex trong mảng đã sort
+      const currentCCCDItem = cccdList[currentIndex];
+
+      if (!currentCCCDItem) {
+        showNotification("❌ Không tìm thấy CCCD tại vị trí hiện tại");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Update status to processing
+      const cccdKey = (currentCCCDItem as any).key;
+      const refCCCDStatus = ref(db, getFirebasePath(`cccdQueue/${cccdKey}/status`));
+      await set(refCCCDStatus, "processing");
+
+      // Process the CCCD
+      console.log("Processing current CCCD:", currentCCCDItem);
+      showNotification(`⚡ Đang xử lý: ${currentCCCDItem.Name}`);
+      
+      await sendMessageToCurrentTab(currentCCCDItem, cccdKey);
+
+    } catch (error) {
+      console.error("Error processing current CCCD:", error);
+      showNotification("❌ Lỗi khi xử lý CCCD");
+      setIsProcessing(false);
+    }
+  };
+
+  // ✅ NEW: Clear Queue
+  const handleClearQueue = async () => {
+    Modal.confirm({
+      title: 'Xác nhận xóa hàng đợi',
+      content: 'Bạn có chắc chắn muốn xóa toàn bộ hàng đợi?',
+      okText: 'Xóa',
+      cancelText: 'Hủy',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const refQueue = ref(db, getFirebasePath("cccdQueue"));
+          await remove(refQueue);
+          
+          const refIndex = ref(db, getFirebasePath("currentIndex"));
+          await set(refIndex, 0);
+          
+          showNotification("✅ Đã xóa hàng đợi");
+        } catch (error) {
+          console.error("Error clearing queue:", error);
+          showNotification("❌ Lỗi khi xóa hàng đợi");
+        }
+      }
+    });
+  };
+
   // ✅ HÀM MỚI: Polling storage để đợi kết quả modal detection
+  // Unused function - may be used later for modal detection
   const waitForModalResult = async (timeout = 7000): Promise<boolean> => {
     const startTime = Date.now();
     
@@ -225,10 +550,10 @@ export default function Popup() {
       Name: "Nguyễn Văn A",
       NgaySinh: "01/01/1990",
       Id: "001234567890"
-    });
+    }, undefined);
   };
 
-  const sendMessageToCurrentTab = async (data: any) => {
+  const sendMessageToCurrentTab = async (data: any, cccdKey?: string) => {
     try {
       const tabs = await chrome.tabs.query({});
 
@@ -240,6 +565,7 @@ export default function Popup() {
       if (!targetTab || !targetTab.id) {
         console.log("Không tìm thấy tab có URL bắt đầu bằng https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all");
         showNotification("Không tìm thấy trang CCCD VNPost đang mở");
+        releaseLock();
         return;
       }
 
@@ -296,6 +622,7 @@ export default function Popup() {
       console.log("Page loaded, executing automation script...");
 
       // Thực thi script automation: check checkbox và click submit
+      // Unused type - may be used later
       type AutomationResult = {
         success: boolean;
         reason: string;
@@ -499,6 +826,7 @@ export default function Popup() {
       });
 
       const scriptResult = result[0]?.result as AutomationResult | undefined;
+      // const scriptResult = { success: true, name: 'Test User', message: 'Thong tin', reason: 'ready_to_submit' }; // For testing
       console.log("Automation result:", scriptResult);
 
       if (scriptResult) {
@@ -512,10 +840,10 @@ export default function Popup() {
           });
           console.log(`✓ Session flag set for tabId: ${tabId}`);
           
-          // Đợi một chút để ensure flag được commit
+          // // Đợi một chút để ensure flag được commit
           await new Promise(resolve => setTimeout(resolve, 100));
           
-          // ✅ BÂY GIỜ MỚI SUBMIT FORM
+          // // ✅ BÂY GIỜ MỚI SUBMIT FORM
           console.log("📤 Submitting form NOW...");
           await chrome.scripting.executeScript({
             target: { tabId },
@@ -529,15 +857,21 @@ export default function Popup() {
               return false;
             }
           });
-          
-          console.log("✓ Form submitted, waiting for modal detection...");
-          
+
+          console.log("✓ Form submitted, waiting for modal detection... with key " + cccdKey);
+
           // Background sẽ tự động inject modal detector khi tab reload xong
           
           // Đợi kết quả modal detection từ storage (polling)
           const modalDetected = await waitForModalResult();
+          // const modalDetected = true;
 
           if (modalDetected) {
+            // ✅ Update Firebase status nếu có cccdKey
+            if (cccdKey) {
+              await updateCCCDStatus(cccdKey, 'completed');
+            }
+
             // Hiển thị thông báo thành công trên trang web
             await chrome.scripting.executeScript({
               target: { tabId },
@@ -595,46 +929,157 @@ export default function Popup() {
               args: [data.Name || ""]
             });
 
-            // Gửi message về Firebase để tiếp tục
-            const refMessage = ref(db, getFirebasePath("message"));
-            await set(refMessage, {
-              "Lenh": "continueCCCD",
-              "TimeStamp": new Date().getTime().toString(),
-              "DoiTuong": ""
-            });
+            // ✅ Kiểm tra auto-run để tiếp tục
+            if (cccdKey) {
+              // ✅ Release lock TRƯỚC KHI tiếp tục
+              releaseLock();
+              
+              const refAuto = ref(db, getFirebasePath("cccdauto"));
+              const autoSnapshot = await get(refAuto);
+              
+              if (autoSnapshot.val()) {
+                // Đợi 2 giây rồi xử lý tiếp
+                setTimeout(() => processNextCCCD(), 200);
+              } else {
+                showNotification("🛑 Đã dừng (auto-run OFF)");
+              }
+            } else {
+              // Legacy behavior: gửi message về Firebase
+              const refMessage = ref(db, getFirebasePath("message"));
+              await set(refMessage, {
+                "Lenh": "continueCCCD",
+                "TimeStamp": new Date().getTime().toString(),
+                "DoiTuong": ""
+              });
+            }
           } else {
             showNotification(`⚠ Không phát hiện modal xác nhận`);
+            
+            // ✅ Update error status nếu có cccdKey
+            if (cccdKey) {
+              await updateCCCDStatus(cccdKey, 'error', 'Modal not detected');
+            }
+            
+            // ✅ Release lock VÔ ĐIỀU KIỆN
+            releaseLock();
           }
         } else if (scriptResult.reason === 'not_found') {
           showNotification(`✗ Không tìm thấy: ${scriptResult.name || data.Name || ""}`);
 
-          // Gửi message về Firebase
-          const refMessage = ref(db, getFirebasePath("message"));
-          await set(refMessage, {
-            "Lenh": "notFound",
-            "TimeStamp": new Date().getTime().toString(),
-            "DoiTuong": scriptResult.name || ""
-          });
+          // ✅ Update error status nếu có cccdKey
+          if (cccdKey) {
+            await updateCCCDStatus(cccdKey, 'error', 'Not found in system');
+            
+            // Thêm vào errorcccd
+            const refError = ref(db, getFirebasePath("errorcccd/records"));
+            await push(refError, {
+              ...data,
+              errorTimestamp: new Date().toISOString()
+            });
+            
+            // Kiểm tra auto-run để tiếp tục
+            const refAuto = ref(db, getFirebasePath("cccdauto"));
+            const autoSnapshot = await get(refAuto);
+            
+            if (autoSnapshot.val()) {
+              // Release lock TRƯỚC KHI tiếp tục
+              releaseLock();
+              setTimeout(() => processNextCCCD(), 2000);
+              return; // Early return để không release 2 lần
+            }
+          } else {
+            // Legacy behavior: gửi message về Firebase
+            const refMessage = ref(db, getFirebasePath("message"));
+            await set(refMessage, {
+              "Lenh": "notFound",
+              "TimeStamp": new Date().getTime().toString(),
+              "DoiTuong": scriptResult.name || ""
+            });
+          }
+          
+          // ✅ Release lock VÔ ĐIỀU KIỆN
+          releaseLock();
         } else if (scriptResult.reason === 'multiple_records') {
           showNotification(`⚠️ Tìm thấy nhiều bản ghi: ${scriptResult.message || ""}`);
 
-          // Gửi message về Firebase - trường hợp trùng lặp
-          const refMessage = ref(db, getFirebasePath("message"));
-          await set(refMessage, {
-            "Lenh": "multipleRecords",
-            "TimeStamp": new Date().getTime().toString(),
-            "DoiTuong": data.Name || ""
-          });
+          // ✅ Update error status nếu có cccdKey
+          if (cccdKey) {
+            await updateCCCDStatus(cccdKey, 'error', 'Multiple records found');
+            
+            // Kiểm tra auto-run để tiếp tục
+            const refAuto = ref(db, getFirebasePath("cccdauto"));
+            const autoSnapshot = await get(refAuto);
+            
+            if (autoSnapshot.val()) {
+              // Release lock TRƯỚC KHI tiếp tục
+              releaseLock();
+              setTimeout(() => processNextCCCD(), 2000);
+              return; // Early return để không release 2 lần
+            }
+          } else {
+            // Legacy behavior: gửi message về Firebase - trường hợp trùng lặp
+            const refMessage = ref(db, getFirebasePath("message"));
+            await set(refMessage, {
+              "Lenh": "multipleRecords",
+              "TimeStamp": new Date().getTime().toString(),
+              "DoiTuong": data.Name || ""
+            });
+          }
+          
+          // ✅ Release lock VÔ ĐIỀU KIỆN
+          releaseLock();
         } else {
           showNotification(`⚠ Lỗi: ${scriptResult.message || scriptResult.reason}`);
+          
+          // ✅ Update error status nếu có cccdKey
+          if (cccdKey) {
+            await updateCCCDStatus(cccdKey, 'error', scriptResult.message || scriptResult.reason);
+          }
+          
+          // ✅ Release lock VÔ ĐIỀU KIỆN
+          releaseLock();
         }
       }
 
     } catch (error) {
       console.error("Error in sendMessageToCurrentTab:", error);
       showNotification("Có lỗi xảy ra khi xử lý");
+      
+      // ✅ CRITICAL: Release lock VÔ ĐIỀU KIỆN
+      releaseLock();
     }
   };
+
+  // ✅ NEW: Auto-update currentCCCD when queueData or currentIndex changes
+  useEffect(() => {
+    console.log("📍 Updating currentCCCD - Index:", currentIndex, "Queue size:", Object.keys(queueData).length);
+    
+    if (Object.keys(queueData).length === 0) {
+      setCurrentCCCD(null);
+      return;
+    }
+
+    const cccdList = Object.entries(queueData).map(([key, value]: [string, any]) => ({
+      key,
+      ...value
+    }));
+    
+    // Sắp xếp theo createdAt (giống Flutter)
+    cccdList.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+    
+    // Lấy CCCD theo vị trí currentIndex
+    if (cccdList[currentIndex]) {
+      console.log("✅ Updated currentCCCD:", cccdList[currentIndex].Name, "Status:", cccdList[currentIndex].status);
+      setCurrentCCCD(cccdList[currentIndex]);
+    } else {
+      console.warn("⚠️ No CCCD found at index:", currentIndex);
+      setCurrentCCCD(null);
+    }
+  }, [queueData, currentIndex]); // ← Chạy mỗi khi queue hoặc index thay đổi
 
   // Firebase listeners effect - chỉ chạy sau khi currentFirebaseKey đã được load
   useEffect(() => {
@@ -648,11 +1093,17 @@ export default function Popup() {
     const refCCCD = ref(db, getFirebasePath("cccd"));
     const refIsAuto = ref(db, getFirebasePath("cccdauto"));
     const refErrorRecords = ref(db, getFirebasePath("errorcccd/records"));
+    
+    // ✅ NEW: Queue management refs
+    const refQueue = ref(db, getFirebasePath("cccdQueue"));
+    const refIndex = ref(db, getFirebasePath("currentIndex"));
 
     console.log("Firebase paths:", {
       cccd: getFirebasePath("cccd"),
       auto: getFirebasePath("cccdauto"),
-      error: getFirebasePath("errorcccd/records")
+      error: getFirebasePath("errorcccd/records"),
+      queue: getFirebasePath("cccdQueue"),
+      index: getFirebasePath("currentIndex")
     });
 
     let isFirstRun = true;
@@ -667,23 +1118,67 @@ export default function Popup() {
         isFirstRun = false;
         return;
       } else {
+        // ✅ CRITICAL FIX: Skip nếu đang xử lý queue
+        if (processingLockRef.current) {
+          console.log("⚠️ Processing lock active, skipping legacy cccd listener");
+          return;
+        }
+        
         if (data && data.Name != "") {
-          sendMessageToCurrentTab(data);
+          sendMessageToCurrentTab(data, undefined);
         } else {
           console.log("Không có dữ liệu CCCD để gửi");
         }
       }
     });
 
-    const unsubscribeIsAuto = onValue(refIsAuto, (snapshot) => {
+    const unsubscribeIsAuto = onValue(refIsAuto, async (snapshot) => {
       const data = snapshot.val();
-      console.log("Auto state received:", data, "with key:", currentFirebaseKey);
+      console.log("🚀 Auto state received:", data, "with key:", currentFirebaseKey);
 
       if (isFirstAutoRun) {
         isFirstAutoRun = false;
+        setIsAutoRunning(!!data);
+        
+        // ✅ Nếu auto đã ON từ trước (Flutter đã bật), trigger ngay
+        if (data) {
+          console.log("🚀 Auto is already ON on first load, triggering processNextCCCD...");
+          // Đợi một chút để đảm bảo queueData đã load
+          setTimeout(() => {
+            processNextCCCD();
+          }, 500);
+        }
         return;
       }
-      // Auto state is monitored but handled by sendMessageToCurrentTab flow
+      
+      setIsAutoRunning(!!data);
+      
+      // ✅ CRITICAL FIX: Auto-trigger processing khi auto được bật (giống Flutter)
+      if (data) {
+        console.log("🚀 Auto-run enabled from Firebase, checking queue...");
+        
+        // Đọc queue từ Firebase để tránh stale state
+        try {
+          const queueSnapshot = await get(refQueue);
+          const hasQueue = queueSnapshot.exists() && Object.keys(queueSnapshot.val() || {}).length > 0;
+          
+          console.log("📊 Queue check:", { hasQueue, queueSize: hasQueue ? Object.keys(queueSnapshot.val()).length : 0 });
+          
+          if (hasQueue) {
+            console.log("✅ Queue available, triggering processNextCCCD...");
+            // Đợi một chút để UI update
+            setTimeout(() => {
+              processNextCCCD();
+            }, 300);
+          } else {
+            console.log("⚠️ No queue available yet");
+          }
+        } catch (error) {
+          console.error("❌ Error checking queue:", error);
+        }
+      } else {
+        console.log("⏸️ Auto-run disabled");
+      }
     });
 
     const unsubscribeErrorRecords = onValue(refErrorRecords, (snapshot) => {
@@ -705,6 +1200,27 @@ export default function Popup() {
       }
     });
 
+    // ✅ NEW: Listen to queue changes
+    const unsubscribeQueue = onValue(refQueue, (snapshot) => {
+      const data = snapshot.val();
+      console.log("📊 Queue data received:", data ? Object.keys(data).length + " items" : "empty");
+      
+      if (data) {
+        setQueueData(data);
+      } else {
+        setQueueData({});
+      }
+    });
+
+    // ✅ NEW: Listen to currentIndex changes
+    const unsubscribeIndex = onValue(refIndex, (snapshot) => {
+      const idx = snapshot.val();
+      console.log("📍 Current index from Firebase:", idx);
+      
+      setCurrentIndex(idx || 0);
+      // currentCCCD sẽ được cập nhật tự động bởi useEffect bên trên
+    });
+
     // Không còn cần message listener vì automation được xử lý trực tiếp trong sendMessageToCurrentTab
     // Tất cả logic automation giờ chạy qua chrome.scripting.executeScript
 
@@ -713,6 +1229,8 @@ export default function Popup() {
       unsubcribeCCCD();
       unsubscribeIsAuto();
       unsubscribeErrorRecords();
+      unsubscribeQueue();
+      unsubscribeIndex();
     }
   }, [currentFirebaseKey]); // Chỉ depend vào currentFirebaseKey
 
@@ -751,14 +1269,36 @@ export default function Popup() {
           </div>
         </div>
 
+        {/* ✅ NEW: Queue Status Panel */}
+        <QueueStatusPanel queueData={queueData} />
+
+        {/* ✅ NEW: Current CCCD Display */}
+        <CurrentCCCDDisplay currentCCCD={currentCCCD} currentIndex={currentIndex} />
+
+        {/* ✅ NEW: Auto-run Controls */}
+        <AutoRunControls
+          isAutoRunning={isAutoRunning}
+          isPending={isProcessing}
+          currentIndex={currentIndex}
+          totalCount={Object.keys(queueData).length}
+          onStartAuto={handleStartAutoRun}
+          onStopAuto={handleStopAutoRun}
+          onNavigatePrevious={handleNavigatePrevious}
+          onNavigateNext={handleNavigateNext}
+          onProcessCurrent={handleProcessCurrent}
+          onGenerateRandom={handleGenerateRandomCCCD}
+          onClearQueue={handleClearQueue}
+          hasQueue={Object.keys(queueData).length > 0}
+        />
+
         <Space>
-          <Button
+          {/* <Button
             onClick={handleGetDataFromPNS}
             type="primary"
             icon={<RedoOutlined />}
           >
-            Chạy
-          </Button>
+            Test Chạy
+          </Button> */}
           {/* THAY ĐỔI: Nút sao chép dữ liệu */}
           <Button
             onClick={handleCopyData}
@@ -767,6 +1307,15 @@ export default function Popup() {
             disabled={!errorRecords || Object.keys(errorRecords).length === 0}
           >
             Sao chép Bảng
+          </Button>
+          {/* MỚI: Nút xóa danh sách lỗi */}
+          <Button
+            onClick={handleClearErrorRecords}
+            danger
+            icon={<DeleteOutlined />}
+            disabled={!errorRecords || Object.keys(errorRecords).length === 0}
+          >
+            Xóa Lỗi
           </Button>
         </Space>
 

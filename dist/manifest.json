@@ -3,6 +3,15 @@
     "name": "CCCD HCC",
     "manifest_version": 3,
     "options_page": "popup.html",
+    "action": {
+        "default_icon": {
+            "16": "16.png",
+            "24": "32.png",
+            "64": "64.png",
+            "128": "128.png"
+        },
+        "default_popup": "" 
+    },
     "background": {
         "service_worker": "background.js"
     },
@@ -42,6 +51,8 @@
         }
     ],
     "content_security_policy": {
-        "extension_pages": "script-src 'self'; object-src 'self'"
+        "content_security_policy": {
+            "extension_pages": "script-src 'self' https://www.gstatic.com/ https://*.firebaseio.com; object-src 'self'; connect-src 'self' https://*.firebaseio.com;"
+        }
     }
 }

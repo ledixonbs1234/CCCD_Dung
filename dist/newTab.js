@@ -23,10 +23,10 @@ var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBP
 // Module
 ___CSS_LOADER_EXPORT___.push([module.id, `
 body{
-    width: 200px;
+    width: 400px;
     height: 100px;
 }
-`, "",{"version":3,"sources":["webpack://./src/asserts/tailwind.css"],"names":[],"mappings":";AACA;IACI,YAAY;IACZ,aAAa;AACjB","sourcesContent":["\r\nbody{\r\n    width: 200px;\r\n    height: 100px;\r\n}\r\n"],"sourceRoot":""}]);
+`, "",{"version":3,"sources":["webpack://./src/asserts/tailwind.css"],"names":[],"mappings":";AACA;IACI,YAAY;IACZ,aAAa;AACjB","sourcesContent":["\r\nbody{\r\n    width: 400px;\r\n    height: 100px;\r\n}\r\n"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 

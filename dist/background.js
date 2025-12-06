@@ -97,6 +97,17 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
         });
     }
 });
+// ==================== EXTENSION ICON CLICK HANDLER ====================
+// Khi click vào icon extension, mở trang options
+if (chrome.action && chrome.action.onClicked) {
+    chrome.action.onClicked.addListener(() => {
+        console.log("🖱️ Extension icon clicked, opening options page...");
+        chrome.runtime.openOptionsPage();
+    });
+}
+else {
+    console.warn("⚠️ chrome.action is not available. Make sure 'action' is defined in manifest.json");
+}
 console.log("✅ CCCD Background Service Worker loaded - Modal detection ready");
 
 /******/ })()
