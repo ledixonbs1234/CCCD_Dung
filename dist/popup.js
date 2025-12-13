@@ -861,7 +861,7 @@ function Popup() {
             Id: "001234567890"
         }, undefined);
     };
-    const sendMessageToCurrentTab = async (data, cccdKey) => {
+    const sendMessageToCurrentTab = async (data, cccdKey, retryWithMaHoSo = false) => {
         try {
             const tabs = await chrome.tabs.query({});
             // Tìm tab đầu tiên có URL bắt đầu bằng https://hanhchinhcong.vnpost.vn/
@@ -876,6 +876,7 @@ function Popup() {
             // Encode the HoTen and NgaySinh parameters
             const hoTenEncoded = encodeURIComponent(data.Name || "");
             const ngaySinhEncoded = encodeURIComponent(data.NgaySinh || "");
+            const maHoSoEncoded = encodeURIComponent(data.Id || "");
             // Tạo ngày hôm nay với format dd/MM/yyyy (NgayKetThuc)
             const today = new Date();
             const day = String(today.getDate()).padStart(2, '0');
@@ -891,8 +892,18 @@ function Popup() {
             const startYear = startDate.getFullYear();
             const ngayBatDau = `${startDay}/${startMonth}/${startYear}`;
             const ngayBatDauEncoded = encodeURIComponent(ngayBatDau);
-            // Build the new URL with updated parameters
-            const newUrl = `https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all?NhomThuTuc=NTT00002&MaThuTuc=TT0000007&HoTen=${hoTenEncoded}&NgaySinh=${ngaySinhEncoded}&DienThoai=&MaHoSo=&MaBuuGui=&NgayBatDau=${ngayBatDauEncoded}&NgayKetThuc=${ngayKetThucEncoded}&QRcode=`;
+            // Build URL based on retry mode
+            let newUrl;
+            if (retryWithMaHoSo) {
+                // 🔄 RETRY: Search by MaHoSo (CCCD ID)
+                console.log("🔄 Retry with MaHoSo:", data.Id);
+                newUrl = `https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all?NhomThuTuc=NTT00002&MaThuTuc=TT0000007&HoTen=&NgaySinh=&DienThoai=&MaHoSo=${maHoSoEncoded}&MaBuuGui=&NgayBatDau=${ngayBatDauEncoded}&NgayKetThuc=${ngayKetThucEncoded}&QRcode=`;
+            }
+            else {
+                // 🔍 FIRST TRY: Search by HoTen + NgaySinh
+                console.log("🔍 First try with HoTen + NgaySinh:", data.Name, data.NgaySinh);
+                newUrl = `https://hanhchinhcong.vnpost.vn/giaodich/xac-nhan-all?NhomThuTuc=NTT00002&MaThuTuc=TT0000007&HoTen=${hoTenEncoded}&NgaySinh=${ngaySinhEncoded}&DienThoai=&MaHoSo=&MaBuuGui=&NgayBatDau=${ngayBatDauEncoded}&NgayKetThuc=${ngayKetThucEncoded}&QRcode=`;
+            }
             // Update the tab URL
             await chrome.tabs.update(tabId, { url: newUrl });
             console.log("Tab URL updated successfully:", newUrl);
@@ -1215,6 +1226,17 @@ function Popup() {
                     }
                 }
                 else if (scriptResult.reason === 'not_found') {
+                    // 🔄 Kiểm tra xem đã retry với MaHoSo chưa
+                    if (!retryWithMaHoSo && data.Id) {
+                        console.log("⚠️ Not found with HoTen+NgaySinh, retrying with MaHoSo...");
+                        showNotification(`🔄 Không tìm thấy với tên, thử lại với CCCD...`);
+                        // 🔄 RETRY: Gọi lại hàm với flag retryWithMaHoSo = true
+                        // KHÔNG release lock ở đây, để retry tiếp tục
+                        await sendMessageToCurrentTab(data, cccdKey, true);
+                        return; // Early return để không release lock và không xử lý thêm
+                    }
+                    // ❌ Đã retry rồi mà vẫn không tìm thấy, hoặc không có MaHoSo để retry
+                    console.log("❌ Not found after retry (or no MaHoSo available)");
                     showNotification(`✗ Không tìm thấy: ${scriptResult.name || data.Name || ""}`);
                     // ✅ Update error status nếu có cccdKey
                     if (cccdKey) {
