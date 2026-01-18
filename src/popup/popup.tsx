@@ -12,7 +12,7 @@ import {
 
 // THAY ĐỔI: Thay đổi icon và loại bỏ xlsx
 import { RedoOutlined, CopyOutlined, SendOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Button, Space, Input, Modal } from "antd";
+import { Button, Space, Input, Modal, Table, Tag, AutoComplete } from "antd";
 import { useEffect, useState, useRef } from "react";
 import { generateCCCDList, CCCDInfo } from "./utils/cccdGenerator";
 import QueueStatusPanel from "./components/QueueStatusPanel";
@@ -33,16 +33,24 @@ export default function Popup() {
   const [errorRecords, setErrorRecords] = useState(null);
   const [maHieu, setMaHieu] = useState("");
   const [firebaseKey, setFirebaseKey] = useState("");
-  const [currentFirebaseKey, setCurrentFirebaseKey] = useState("");
-  const [isKeyModalVisible, setIsKeyModalVisible] = useState(false);
-  const [isKeySetupComplete, setIsKeySetupComplete] = useState(false);
-
   // ✅ NEW: Queue management states
   const [queueData, setQueueData] = useState<Record<string, CCCDInfo>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [currentCCCD, setCurrentCCCD] = useState<CCCDInfo | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // State cho tìm vị trí theo tên
+  const [searchName, setSearchName] = useState("");
+  const [searchResult, setSearchResult] = useState<null | { index: number, cccd: any }>(null);
+  // Gợi ý tên từ queueData
+  const nameOptions = Object.values(queueData || {})
+    .map((item: any) => item.Name)
+    .filter((v, i, arr) => v && arr.indexOf(v) === i)
+    .map(name => ({ value: name }));
+  const [currentFirebaseKey, setCurrentFirebaseKey] = useState("");
+  const [isKeyModalVisible, setIsKeyModalVisible] = useState(false);
+  const [isKeySetupComplete, setIsKeySetupComplete] = useState(false);
 
   // ✅ CRITICAL FIX: useRef để persist lock across re-renders
   const processingLockRef = useRef(false);
@@ -1257,6 +1265,42 @@ export default function Popup() {
     }
   }, [currentFirebaseKey]); // Chỉ depend vào currentFirebaseKey
 
+  // Prepare error table data & columns
+  // Tìm vị trí CCCD trong queueData (dựa vào Id)
+  const queueList = Object.values(queueData || {});
+  const errorData = errorRecords
+    ? Object.entries(errorRecords).map(([key, record]: [string, any], index) => {
+        const cccdIndex = queueList.findIndex((item: any) => item.Id === record.Id);
+        return {
+          key,
+          stt: index + 1,
+          viTri: cccdIndex >= 0 ? cccdIndex + 1 : '',
+          Id: record.Id || "",
+          Name: record.Name || "",
+          NgaySinh: record.NgaySinh || "",
+          gioiTinh: record.gioiTinh || "",
+          DiaChi: record.DiaChi || "",
+          errorTimestamp: record.errorTimestamp || "",
+        };
+      })
+    : [];
+
+  const errorColumns = [
+    { title: 'STT', dataIndex: 'stt', key: 'stt', width: 70 },
+    { title: 'Vị trí lỗi', dataIndex: 'viTri', key: 'viTri', width: 120 },
+    { title: 'CCCD', dataIndex: 'Id', key: 'Id' },
+    { title: 'Họ tên', dataIndex: 'Name', key: 'Name' },
+    { title: 'Ngày sinh', dataIndex: 'NgaySinh', key: 'NgaySinh' },
+    {
+      title: 'Giới tính',
+      dataIndex: 'gioiTinh',
+      key: 'gioiTinh',
+      render: (val: string) => (val ? <Tag color="blue">{val}</Tag> : null),
+    },
+    { title: 'Địa chỉ', dataIndex: 'DiaChi', key: 'DiaChi' },
+    { title: 'Thời gian lỗi', dataIndex: 'errorTimestamp', key: 'errorTimestamp', width: 160 },
+  ];
+
   return (
     <div className="m-5">
       <Space direction="vertical" style={{ width: '100%' }}>
@@ -1329,7 +1373,7 @@ export default function Popup() {
             icon={<CopyOutlined />}
             disabled={!errorRecords || Object.keys(errorRecords).length === 0}
           >
-            Sao chép Bảng
+            Sao chép Lỗi
           </Button>
           {/* MỚI: Nút xóa danh sách lỗi */}
           <Button
@@ -1344,14 +1388,14 @@ export default function Popup() {
 
         {/* MỚI: Section gửi mã hiệu */}
         <Space direction="vertical" style={{ width: '100%' }}>
-          <h4 style={{ margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }}>Gửi Mã Hiệu</h4>
+          <h4 style={{ margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }}>Gửi Mã Hiệu / Tìm vị trí theo tên</h4>
           <Space style={{ width: '100%' }}>
             <Input
               placeholder="Nhập mã hiệu..."
               value={maHieu}
               onChange={(e) => setMaHieu(e.target.value)}
               onPressEnter={handleSendMaHieu}
-              style={{ flex: 1, width: 200 }}
+              style={{ flex: 1, width: 180 }}
             />
             <Button
               onClick={handleSendMaHieu}
@@ -1361,15 +1405,70 @@ export default function Popup() {
             >
               Gửi Mã Hiệu
             </Button>
+
+            {/* Input tìm vị trí theo tên */}
+            <AutoComplete
+              options={nameOptions}
+              filterOption={(inputValue, option) =>
+                (option?.value || '').toLowerCase().includes(inputValue.toLowerCase())
+              }
+              value={searchName}
+              onChange={setSearchName}
+              onSelect={val => setSearchName(val)}
+              style={{ flex: 1, width: 180 }}
+              placeholder="Nhập tên cần tìm..."
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const list = Object.values(queueData || {});
+                  const idx = list.findIndex(
+                    (item: any) => (item.Name || "").trim().toLowerCase() === searchName.trim().toLowerCase()
+                  );
+                  if (idx >= 0) setSearchResult({ index: idx + 1, cccd: list[idx] });
+                  else setSearchResult(null);
+                }
+              }}
+            />
+            <Button
+              onClick={() => {
+                const list = Object.values(queueData || {});
+                const idx = list.findIndex(
+                  (item: any) => (item.Name || "").trim().toLowerCase() === searchName.trim().toLowerCase()
+                );
+                if (idx >= 0) setSearchResult({ index: idx + 1, cccd: list[idx] });
+                else setSearchResult(null);
+              }}
+              type="default"
+              disabled={!searchName.trim()}
+            >
+              Tìm vị trí
+            </Button>
           </Space>
+          {/* Hiển thị kết quả tìm kiếm */}
+          {searchName.trim() && (
+            <div style={{ fontSize: 13, marginTop: 4 }}>
+              {searchResult
+                ? <span>Vị trí: <b>{searchResult.index}</b> | CCCD: <b>{searchResult.cccd.Id}</b> | Ngày sinh: <b>{searchResult.cccd.NgaySinh}</b></span>
+                : <span style={{ color: 'red' }}>Không tìm thấy tên trong danh sách CCCD</span>
+              }
+            </div>
+          )}
         </Space>
 
         {errorRecords && (
-          <div>
+          <div style={{ width: '100%' }}>
             <h3 style={{ marginTop: '15px' }}>Danh sách lỗi đã đồng bộ:</h3>
-            <pre style={{ maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}>
-              {JSON.stringify(errorRecords, null, 2)}
-            </pre>
+
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <Table
+                dataSource={errorData}
+                columns={errorColumns}
+                pagination={{ pageSize: 20 }}
+                size="small"
+                bordered
+                scroll={{ x: 'max-content', y: 500 }}
+                style={{ minWidth: 700 }}
+              />
+            </div>
           </div>
         )}
       </Space>

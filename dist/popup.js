@@ -23,10 +23,10 @@ var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBP
 // Module
 ___CSS_LOADER_EXPORT___.push([module.id, `
 body{
-    width: 400px;
+    width: 1200px;
     height: 100px;
 }
-`, "",{"version":3,"sources":["webpack://./src/asserts/tailwind.css"],"names":[],"mappings":";AACA;IACI,YAAY;IACZ,aAAa;AACjB","sourcesContent":["\r\nbody{\r\n    width: 400px;\r\n    height: 100px;\r\n}\r\n"],"sourceRoot":""}]);
+`, "",{"version":3,"sources":["webpack://./src/asserts/tailwind.css"],"names":[],"mappings":";AACA;IACI,aAAa;IACb,aAAa;AACjB","sourcesContent":["\r\nbody{\r\n    width: 1200px;\r\n    height: 100px;\r\n}\r\n"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -386,15 +386,18 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _asserts_tailwind_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../asserts/tailwind.css */ "./src/asserts/tailwind.css");
 /* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/esm/index.esm.js");
 /* harmony import */ var firebase_database__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! firebase/database */ "./node_modules/firebase/database/dist/esm/index.esm.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/EditOutlined.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/PlusOutlined.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/CopyOutlined.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/DeleteOutlined.js");
-/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/SendOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/EditOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/PlusOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/CopyOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/DeleteOutlined.js");
+/* harmony import */ var _ant_design_icons__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! @ant-design/icons */ "./node_modules/@ant-design/icons/es/icons/SendOutlined.js");
 /* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/modal/index.js");
-/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/space/index.js");
-/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/button/index.js");
-/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/input/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/tag/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/space/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/button/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/input/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/auto-complete/index.js");
+/* harmony import */ var antd__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! antd */ "./node_modules/antd/es/table/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_4__);
 /* harmony import */ var _utils_cccdGenerator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./utils/cccdGenerator */ "./src/popup/utils/cccdGenerator.ts");
@@ -426,15 +429,23 @@ function Popup() {
     const [errorRecords, setErrorRecords] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(null);
     const [maHieu, setMaHieu] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
     const [firebaseKey, setFirebaseKey] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
-    const [currentFirebaseKey, setCurrentFirebaseKey] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
-    const [isKeyModalVisible, setIsKeyModalVisible] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
-    const [isKeySetupComplete, setIsKeySetupComplete] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
     // ✅ NEW: Queue management states
     const [queueData, setQueueData] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)({});
     const [currentIndex, setCurrentIndex] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(0);
     const [isAutoRunning, setIsAutoRunning] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
     const [currentCCCD, setCurrentCCCD] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(null);
     const [isProcessing, setIsProcessing] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
+    // State cho tìm vị trí theo tên
+    const [searchName, setSearchName] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
+    const [searchResult, setSearchResult] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(null);
+    // Gợi ý tên từ queueData
+    const nameOptions = Object.values(queueData || {})
+        .map((item) => item.Name)
+        .filter((v, i, arr) => v && arr.indexOf(v) === i)
+        .map(name => ({ value: name }));
+    const [currentFirebaseKey, setCurrentFirebaseKey] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)("");
+    const [isKeyModalVisible, setIsKeyModalVisible] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
+    const [isKeySetupComplete, setIsKeySetupComplete] = (0,react__WEBPACK_IMPORTED_MODULE_4__.useState)(false);
     // ✅ CRITICAL FIX: useRef để persist lock across re-renders
     const processingLockRef = (0,react__WEBPACK_IMPORTED_MODULE_4__.useRef)(false);
     // ✅ Helper function to release processing lock
@@ -1474,15 +1485,67 @@ function Popup() {
             unsubscribeIndex();
         };
     }, [currentFirebaseKey]); // Chỉ depend vào currentFirebaseKey
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { className: "m-5", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_10__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: {
+    // Prepare error table data & columns
+    // Tìm vị trí CCCD trong queueData (dựa vào Id)
+    const queueList = Object.values(queueData || {});
+    const errorData = errorRecords
+        ? Object.entries(errorRecords).map(([key, record], index) => {
+            const cccdIndex = queueList.findIndex((item) => item.Id === record.Id);
+            return {
+                key,
+                stt: index + 1,
+                viTri: cccdIndex >= 0 ? cccdIndex + 1 : '',
+                Id: record.Id || "",
+                Name: record.Name || "",
+                NgaySinh: record.NgaySinh || "",
+                gioiTinh: record.gioiTinh || "",
+                DiaChi: record.DiaChi || "",
+                errorTimestamp: record.errorTimestamp || "",
+            };
+        })
+        : [];
+    const errorColumns = [
+        { title: 'STT', dataIndex: 'stt', key: 'stt', width: 70 },
+        { title: 'Vị trí lỗi', dataIndex: 'viTri', key: 'viTri', width: 120 },
+        { title: 'CCCD', dataIndex: 'Id', key: 'Id' },
+        { title: 'Họ tên', dataIndex: 'Name', key: 'Name' },
+        { title: 'Ngày sinh', dataIndex: 'NgaySinh', key: 'NgaySinh' },
+        {
+            title: 'Giới tính',
+            dataIndex: 'gioiTinh',
+            key: 'gioiTinh',
+            render: (val) => (val ? (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_10__["default"], { color: "blue", children: val }) : null),
+        },
+        { title: 'Địa chỉ', dataIndex: 'DiaChi', key: 'DiaChi' },
+        { title: 'Thời gian lỗi', dataIndex: 'errorTimestamp', key: 'errorTimestamp', width: 160 },
+    ];
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { className: "m-5", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: {
                             padding: '12px',
                             borderRadius: '6px',
                             ...getFirebaseStatus().style
-                        }, children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", { style: { fontSize: '13px', fontWeight: 'bold' }, children: getFirebaseStatus().message }), isKeySetupComplete ? ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { size: "small", type: "text", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_12__["default"], {}), onClick: showFirebaseKeyDialog, children: "S\u1EEDa" })) : ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { size: "small", type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_13__["default"], {}), onClick: showFirebaseKeyDialog, children: "Th\u00EAm Key" }))] }) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_components_QueueStatusPanel__WEBPACK_IMPORTED_MODULE_6__["default"], { queueData: queueData }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_components_CurrentCCCDDisplay__WEBPACK_IMPORTED_MODULE_7__["default"], { currentCCCD: currentCCCD, currentIndex: currentIndex }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_components_AutoRunControls__WEBPACK_IMPORTED_MODULE_8__["default"], { isAutoRunning: isAutoRunning, isPending: isProcessing, currentIndex: currentIndex, totalCount: Object.keys(queueData).length, onStartAuto: handleStartAutoRun, onStopAuto: handleStopAutoRun, onNavigatePrevious: handleNavigatePrevious, onNavigateNext: handleNavigateNext, onProcessCurrent: handleProcessCurrent, onGenerateRandom: handleGenerateRandomCCCD, onClearQueue: handleClearQueue, hasQueue: Object.keys(queueData).length > 0 }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_10__["default"], { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { onClick: handleCopyData, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_14__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "Sao ch\u00E9p B\u1EA3ng" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { onClick: handleClearErrorRecords, danger: true, icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_15__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "X\u00F3a L\u1ED7i" })] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_10__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h4", { style: { margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }, children: "G\u1EEDi M\u00E3 Hi\u1EC7u" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_10__["default"], { style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_16__["default"], { placeholder: "Nh\u1EADp m\u00E3 hi\u1EC7u...", value: maHieu, onChange: (e) => setMaHieu(e.target.value), onPressEnter: handleSendMaHieu, style: { flex: 1, width: 200 } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { onClick: handleSendMaHieu, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_17__["default"], {}), disabled: !maHieu.trim(), children: "G\u1EEDi M\u00E3 Hi\u1EC7u" })] })] }), errorRecords && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { style: { marginTop: '15px' }, children: "Danh s\u00E1ch l\u1ED7i \u0111\u00E3 \u0111\u1ED3ng b\u1ED9:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("pre", { style: { maxHeight: '200px', overflow: 'auto', background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }, children: JSON.stringify(errorRecords, null, 2) })] }))] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_9__["default"], { title: "C\u1EA5u h\u00ECnh Firebase Key", open: isKeyModalVisible, onOk: saveFirebaseKey, onCancel: () => setIsKeyModalVisible(false), okText: "L\u01B0u", cancelText: "H\u1EE7y", footer: [
-                    currentFirebaseKey && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { danger: true, onClick: clearFirebaseKey, style: { float: 'left' }, children: "X\u00F3a Key" }, "clear")),
-                    (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { onClick: () => setIsKeyModalVisible(false), children: "H\u1EE7y" }, "cancel"),
-                    (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { type: "primary", onClick: saveFirebaseKey, children: "L\u01B0u" }, "save")
-                ], children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_10__["default"], { direction: "vertical", style: { width: '100%' }, children: [currentFirebaseKey && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", { children: "Key hi\u1EC7n t\u1EA1i:" }), " ", currentFirebaseKey] })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", { children: "Key m\u1EDBi:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_16__["default"], { placeholder: "Nh\u1EADp Firebase key (v\u00ED d\u1EE5: user123, room001)", value: firebaseKey, onChange: (e) => setFirebaseKey(e.target.value), maxLength: 20, style: { marginTop: '8px' } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: { fontSize: '12px', color: '#666', marginTop: '4px' }, children: "Ch\u1EC9 \u0111\u01B0\u1EE3c ch\u1EE9a ch\u1EEF, s\u1ED1, d\u1EA5u g\u1EA1ch d\u01B0\u1EDBi (_) v\u00E0 g\u1EA1ch ngang (-). T\u1ED1i \u0111a 20 k\u00FD t\u1EF1." })] })] }) })] }));
+                        }, children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", { style: { fontSize: '13px', fontWeight: 'bold' }, children: getFirebaseStatus().message }), isKeySetupComplete ? ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { size: "small", type: "text", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_13__["default"], {}), onClick: showFirebaseKeyDialog, children: "S\u1EEDa" })) : ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { size: "small", type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_14__["default"], {}), onClick: showFirebaseKeyDialog, children: "Th\u00EAm Key" }))] }) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_components_QueueStatusPanel__WEBPACK_IMPORTED_MODULE_6__["default"], { queueData: queueData }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_components_CurrentCCCDDisplay__WEBPACK_IMPORTED_MODULE_7__["default"], { currentCCCD: currentCCCD, currentIndex: currentIndex }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_components_AutoRunControls__WEBPACK_IMPORTED_MODULE_8__["default"], { isAutoRunning: isAutoRunning, isPending: isProcessing, currentIndex: currentIndex, totalCount: Object.keys(queueData).length, onStartAuto: handleStartAutoRun, onStopAuto: handleStopAutoRun, onNavigatePrevious: handleNavigatePrevious, onNavigateNext: handleNavigateNext, onProcessCurrent: handleProcessCurrent, onGenerateRandom: handleGenerateRandomCCCD, onClearQueue: handleClearQueue, hasQueue: Object.keys(queueData).length > 0 }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { onClick: handleCopyData, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_15__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "Sao ch\u00E9p L\u1ED7i" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { onClick: handleClearErrorRecords, danger: true, icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_16__["default"], {}), disabled: !errorRecords || Object.keys(errorRecords).length === 0, children: "X\u00F3a L\u1ED7i" })] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { direction: "vertical", style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h4", { style: { margin: '10px 0 5px 0', fontSize: '14px', fontWeight: 'bold' }, children: "G\u1EEDi M\u00E3 Hi\u1EC7u / T\u00ECm v\u1ECB tr\u00ED theo t\u00EAn" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_17__["default"], { placeholder: "Nh\u1EADp m\u00E3 hi\u1EC7u...", value: maHieu, onChange: (e) => setMaHieu(e.target.value), onPressEnter: handleSendMaHieu, style: { flex: 1, width: 180 } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { onClick: handleSendMaHieu, type: "primary", icon: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_ant_design_icons__WEBPACK_IMPORTED_MODULE_18__["default"], {}), disabled: !maHieu.trim(), children: "G\u1EEDi M\u00E3 Hi\u1EC7u" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_19__["default"], { options: nameOptions, filterOption: (inputValue, option) => (option?.value || '').toLowerCase().includes(inputValue.toLowerCase()), value: searchName, onChange: setSearchName, onSelect: val => setSearchName(val), style: { flex: 1, width: 180 }, placeholder: "Nh\u1EADp t\u00EAn c\u1EA7n t\u00ECm...", onKeyDown: e => {
+                                            if (e.key === 'Enter') {
+                                                const list = Object.values(queueData || {});
+                                                const idx = list.findIndex((item) => (item.Name || "").trim().toLowerCase() === searchName.trim().toLowerCase());
+                                                if (idx >= 0)
+                                                    setSearchResult({ index: idx + 1, cccd: list[idx] });
+                                                else
+                                                    setSearchResult(null);
+                                            }
+                                        } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { onClick: () => {
+                                            const list = Object.values(queueData || {});
+                                            const idx = list.findIndex((item) => (item.Name || "").trim().toLowerCase() === searchName.trim().toLowerCase());
+                                            if (idx >= 0)
+                                                setSearchResult({ index: idx + 1, cccd: list[idx] });
+                                            else
+                                                setSearchResult(null);
+                                        }, type: "default", disabled: !searchName.trim(), children: "T\u00ECm v\u1ECB tr\u00ED" })] }), searchName.trim() && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: { fontSize: 13, marginTop: 4 }, children: searchResult
+                                    ? (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("span", { children: ["V\u1ECB tr\u00ED: ", (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("b", { children: searchResult.index }), " | CCCD: ", (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("b", { children: searchResult.cccd.Id }), " | Ng\u00E0y sinh: ", (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("b", { children: searchResult.cccd.NgaySinh })] })
+                                    : (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", { style: { color: 'red' }, children: "Kh\u00F4ng t\u00ECm th\u1EA5y t\u00EAn trong danh s\u00E1ch CCCD" }) }))] }), errorRecords && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { style: { width: '100%' }, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { style: { marginTop: '15px' }, children: "Danh s\u00E1ch l\u1ED7i \u0111\u00E3 \u0111\u1ED3ng b\u1ED9:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: { width: '100%', overflowX: 'auto' }, children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_20__["default"], { dataSource: errorData, columns: errorColumns, pagination: { pageSize: 20 }, size: "small", bordered: true, scroll: { x: 'max-content', y: 500 }, style: { minWidth: 700 } }) })] }))] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_9__["default"], { title: "C\u1EA5u h\u00ECnh Firebase Key", open: isKeyModalVisible, onOk: saveFirebaseKey, onCancel: () => setIsKeyModalVisible(false), okText: "L\u01B0u", cancelText: "H\u1EE7y", footer: [
+                    currentFirebaseKey && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { danger: true, onClick: clearFirebaseKey, style: { float: 'left' }, children: "X\u00F3a Key" }, "clear")),
+                    (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { onClick: () => setIsKeyModalVisible(false), children: "H\u1EE7y" }, "cancel"),
+                    (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_12__["default"], { type: "primary", onClick: saveFirebaseKey, children: "L\u01B0u" }, "save")
+                ], children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(antd__WEBPACK_IMPORTED_MODULE_11__["default"], { direction: "vertical", style: { width: '100%' }, children: [currentFirebaseKey && ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", { children: "Key hi\u1EC7n t\u1EA1i:" }), " ", currentFirebaseKey] })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("strong", { children: "Key m\u1EDBi:" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(antd__WEBPACK_IMPORTED_MODULE_17__["default"], { placeholder: "Nh\u1EADp Firebase key (v\u00ED d\u1EE5: user123, room001)", value: firebaseKey, onChange: (e) => setFirebaseKey(e.target.value), maxLength: 20, style: { marginTop: '8px' } }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { style: { fontSize: '12px', color: '#666', marginTop: '4px' }, children: "Ch\u1EC9 \u0111\u01B0\u1EE3c ch\u1EE9a ch\u1EEF, s\u1ED1, d\u1EA5u g\u1EA1ch d\u01B0\u1EDBi (_) v\u00E0 g\u1EA1ch ngang (-). T\u1ED1i \u0111a 20 k\u00FD t\u1EF1." })] })] }) })] }));
 }
 
 
@@ -1892,7 +1955,7 @@ const generateAndValidateCCCDList = (count = 50) => {
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_css-loader_dist_runtime_api_js-node_modules_css-loader_dist_runtime_sour-7f547c","vendors-node_modules_ant-design_icons_es_icons_CalendarOutlined_js-node_modules_ant-design_ic-85ebb5"], () => (__webpack_require__("./src/popup/index.tsx")))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_css-loader_dist_runtime_api_js-node_modules_css-loader_dist_runtime_sour-7f547c","vendors-node_modules_ant-design_icons_es_icons_CalendarOutlined_js-node_modules_ant-design_ic-b7f29c"], () => (__webpack_require__("./src/popup/index.tsx")))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
